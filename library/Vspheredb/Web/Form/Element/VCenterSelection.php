@@ -27,7 +27,6 @@ class VCenterSelection extends SelectElement
                 null => $this->translate('- please choose -'),
             ] + $enum,
             'class' => 'autosubmit',
-            'value' => key($enum),
         ]);
     }
 
