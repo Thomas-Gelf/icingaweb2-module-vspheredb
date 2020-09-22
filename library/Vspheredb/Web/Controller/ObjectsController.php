@@ -114,8 +114,14 @@ class ObjectsController extends Controller
     protected function addPathTo($parent, $url)
     {
         $lookup = $this->pathLookup();
-        $path = Html::tag('span', ['class' => 'dc-path'])->setSeparator(' > ');
+        $path = Html::tag('span', ['class' => 'dc-path']);
+        $first = true;
         foreach ($lookup->getObjectNames($lookup->listPathTo($parent)) as $uuid => $name) {
+            if ($first) {
+                $first = false;
+            } else {
+                $path->add(' > ');
+            }
             $path->add(Link::create($name, $url, [
                 'uuid'            => bin2hex($uuid),
                 'showDescendants' => true,
