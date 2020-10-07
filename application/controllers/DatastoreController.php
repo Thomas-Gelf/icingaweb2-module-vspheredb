@@ -3,7 +3,7 @@
 namespace Icinga\Module\Vspheredb\Controllers;
 
 use gipfl\IcingaWeb2\Link;
-use gipfl\IcingaWeb2\Widget\NameValueTable;
+use gipfl\Web\Table\NameValueTable;
 use Icinga\Module\Vspheredb\DbObject\Datastore;
 use Icinga\Module\Vspheredb\PathLookup;
 use Icinga\Module\Vspheredb\Web\Controller;

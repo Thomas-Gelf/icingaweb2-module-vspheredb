@@ -3,13 +3,13 @@
 namespace Icinga\Module\Vspheredb\Web\Form;
 
 use gipfl\Translation\TranslationHelper;
+use gipfl\Web\Form;
 use Icinga\Module\Vspheredb\Db;
 use Icinga\Module\Vspheredb\DbObject\BaseDbObject;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\DbObject\VCenterServer;
-use gipfl\Web\Form as gForm;
 
-class VCenterForm extends gForm
+class VCenterForm extends Form
 {
     use TranslationHelper;
 
