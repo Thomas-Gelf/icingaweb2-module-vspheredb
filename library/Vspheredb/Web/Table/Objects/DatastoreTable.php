@@ -16,6 +16,7 @@ class DatastoreTable extends ObjectsTable
         $this->addAvailableColumns([
             $this->createOverallStatusColumn(),
             $this->createColumn('object_name', $this->translate('Name'), [
+                'overall_status'       => 'o.overall_status',
                 'object_name'          => 'o.object_name',
                 'uuid'                 => 'o.uuid',
                 'capacity'             => 'ds.capacity',
@@ -24,6 +25,12 @@ class DatastoreTable extends ObjectsTable
                 'free_space_percent'   => '(ds.free_space / ds.capacity) * 100',
                 'uncommitted_percent'  => '(ds.uncommitted / ds.capacity) * 100',
             ])->setRenderer(function ($row) {
+                if (in_array('overall_status', $this->getChosenColumnNames())) {
+                    $result = [];
+                } else {
+                    $statusRenderer = $this->overallStatusRenderer();
+                    $result = [$statusRenderer($row)];
+                }
                 $title = sprintf(
                     // '%d VM(s), %s of %s used, %s uncommitted',
                     '%s of %s used, %s uncommitted',
@@ -33,12 +40,14 @@ class DatastoreTable extends ObjectsTable
                     $this->formatBytesPercent($row, 'uncommitted')
                 );
 
-                return Link::create(
+                $result[] = Link::create(
                     $row->object_name,
                     'vspheredb/datastore',
                     ['uuid' => bin2hex($row->uuid)],
                     ['title' => $title]
                 );
+
+                return $result;
             }),
             $this->createColumn(
                 'multiple_host_access',
@@ -51,9 +60,6 @@ class DatastoreTable extends ObjectsTable
                 ->setRenderer(function ($row) {
                     return Format::bytes($row->free_space, Format::STANDARD_IEC);
                 }),
-            $this->createColumn('cnt_vms', $this->translate('VMs'), [
-                'cnt_vms' => 'COALESCE(vdu.cnt_vms, 0)',
-            ])->setDefaultSortDirection('DESC'),
             $this->createColumn('free_space_percent', $this->translate('Free (%)'), [
                 'free_space_percent'  => '(ds.free_space / ds.capacity) * 100'
             ])->setRenderer(function ($row) {
@@ -72,6 +78,9 @@ class DatastoreTable extends ObjectsTable
                 ->setRenderer(function ($row) {
                     return Format::bytes($row->capacity, Format::STANDARD_IEC);
                 }),
+            $this->createColumn('cnt_vms', $this->translate('VMs'), [
+                'cnt_vms' => 'COALESCE(vdu.cnt_vms, 0)',
+            ])->setDefaultSortDirection('DESC'),
             $this->createColumn('usage', $this->translate('Usage'), [
                 'uuid' => 'o.uuid'
             ])->setRenderer(function ($row) {
@@ -91,8 +100,9 @@ class DatastoreTable extends ObjectsTable
     public function getDefaultColumnNames()
     {
         return [
-            'overall_status',
             'object_name',
+            'free_space',
+            'size',
             'usage',
         ];
     }
@@ -121,7 +131,6 @@ class DatastoreTable extends ObjectsTable
 
         return $this;
     }
-
 
     public function prepareQuery()
     {
