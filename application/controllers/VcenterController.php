@@ -111,31 +111,6 @@ class VcenterController extends Controller
     /**
      * @throws \Icinga\Security\SecurityException
      */
-    public function serversAction()
-    {
-        $this->assertPermission('vspheredb/admin');
-        $this->setAutorefreshInterval(10);
-        $this->handleTabs();
-        $this->addTitle($this->translate('vCenter Servers'));
-        $this->actions()->add(
-            Link::create(
-                $this->translate('Add'),
-                'vspheredb/vcenter/server',
-                null,
-                [
-                    'class' => 'icon-plus',
-                    'data-base-target' => '_next'
-                ]
-            )
-        );
-
-        $table = new VCenterServersTable($this->db());
-        $table->renderTo($this);
-    }
-
-    /**
-     * @throws \Icinga\Security\SecurityException
-     */
     public function serverAction()
     {
         $this->assertPermission('vspheredb/admin');

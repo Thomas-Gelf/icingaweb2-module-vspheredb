@@ -32,6 +32,10 @@ $section->add(N_('Event History'))
 $section->add(N_('Alarm History'))
     ->setUrl('vspheredb/alarms/heatmap')
     ->setPriority(49);
+$section->add(N_('Configuration'))
+    ->setUrl('vspheredb/configuration')
+    ->setPermission('vspheredb/admin')
+    ->setPriority(51);
 // $section->add(N_('Performance Counter'))
 //     ->setUrl('vspheredb/configuration/counters')
 //     ->setPriority(60);

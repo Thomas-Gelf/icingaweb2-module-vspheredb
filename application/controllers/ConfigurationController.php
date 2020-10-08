@@ -4,28 +4,31 @@ namespace Icinga\Module\Vspheredb\Controllers;
 
 use gipfl\IcingaWeb2\Link;
 use gipfl\Web\Widget\Hint;
+use gipfl\ZfDbStore\ZfDbStore;
 use Icinga\Module\Vspheredb\Web\Form\ChooseDbResourceForm;
 use Icinga\Module\Vspheredb\Web\Form\MonitoringConnectionForm;
+use Icinga\Module\Vspheredb\Web\Form\VCenterPerformanceCollectionForm;
 use Icinga\Module\Vspheredb\Web\Table\MonitoredObjectMappingTable;
-use Icinga\Module\Vspheredb\Web\Tabs\MainTabs;
+use Icinga\Module\Vspheredb\Web\Table\Objects\VCenterServersTable;
+use Icinga\Module\Vspheredb\Web\Tabs\ConfigTabs;
 use Icinga\Module\Vspheredb\Web\Controller;
+use Icinga\Module\Vspheredb\Web\Tabs\VCenterTabs;
 use Icinga\Module\Vspheredb\Web\Widget\Config\ProposeMigrations;
+use Icinga\Web\Notification;
 use ipl\Html\Html;
 
 class ConfigurationController extends Controller
 {
+    public function init()
+    {
+        $this->assertPermission('vspheredb/admin');
+        parent::init();
+    }
+
     public function indexAction()
     {
         $this->addTitle($this->translate('Main Configuration'));
-
-        if (! $this->hasPermission('vspheredb/admin')) {
-            $this->addSingleTab($this->translate('Configuration'));
-            $this->content()->add(Hint::error(
-                $this->translate('"vspheredb/admin" permissions are required to continue')
-            ));
-
-            return;
-        }
+        $this->tabs(new ConfigTabs())->activate('configuration');
         $form = new ChooseDbResourceForm();
         $form->handleRequest($this->getServerRequest());
         $this->content()->add($form);
@@ -37,9 +40,6 @@ class ConfigurationController extends Controller
 
         if ($this->Config()->get('db', 'resource')) {
             $db = $this->db();
-            $this->tabs(new MainTabs($this->Auth(), $db))
-                ->activate('configuration');
-
             if ($db === null) {
                 return;
             }
@@ -49,14 +49,36 @@ class ConfigurationController extends Controller
                 $this->redirectNow($this->url());
             }
             $this->content()->add($migrations);
-        } else {
-            $this->tabs(new MainTabs($this->Auth()))->activate('configuration');
         }
+    }
+
+    /**
+     * @throws \Icinga\Security\SecurityException
+     */
+    public function serversAction()
+    {
+        $this->tabs(new ConfigTabs($this->db()))->activate('servers');
+        $this->setAutorefreshInterval(10);
+        $this->addTitle($this->translate('vCenter Servers'));
+        $this->actions()->add(
+            Link::create(
+                $this->translate('Add'),
+                'vspheredb/vcenter/server',
+                null,
+                [
+                    'class' => 'icon-plus',
+                    'data-base-target' => '_next'
+                ]
+            )
+        );
+
+        $table = new VCenterServersTable($this->db());
+        $table->renderTo($this);
     }
 
     public function monitoringAction()
     {
-        $this->tabs(new MainTabs($this->Auth()))->activate('monitoring');
+        $this->tabs(new ConfigTabs($this->db()))->activate('monitoring');
         $this->actions()->add(Link::create(
             $this->translate('Add'),
             'vspheredb/configuration/addmonitoring',
@@ -112,6 +134,32 @@ class ConfigurationController extends Controller
             $res->vcenter = \bin2hex($res->vcenter_uuid);
             $form->populate((array) $res);
         }
+        $form->handleRequest($this->getServerRequest());
+        $this->content()->add($form);
+    }
+
+    public function perfdataAction()
+    {
+        $this->tabs(new ConfigTabs($this->db()))->activate('perfdata');
+        $this->addTitle($this->translate('Performance Data'));
+        $this->content()->add(Html::tag('p', $this->translate(
+            'This module can collect Performance Data from your vCenters or ESXi Hosts.'
+            . ' Please configure a graphing implementation...'
+        )));
+        $store = new ZfDbStore($this->db()->getDbAdapter());
+        $form = new VCenterPerformanceCollectionForm($store);
+        $form->on(VCenterPerformanceCollectionForm::ON_SUCCESS, function () use ($form) {
+            if ($form->wasNew()) {
+                Notification::success($this->translate(
+                    'Performance data subscription has been created'
+                ));
+            } else {
+                Notification::success($this->translate(
+                    'Performance data subscription has been updated'
+                ));
+            }
+            $this->redirectNow($this->url());
+        });
         $form->handleRequest($this->getServerRequest());
         $this->content()->add($form);
     }

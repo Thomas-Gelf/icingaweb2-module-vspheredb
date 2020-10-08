@@ -20,17 +20,6 @@ class PerfdataController extends Controller
         $this->assertPermission('vspheredb/admin');
     }
 
-    public function indexAction()
-    {
-        $vCenter = $this->requireVCenter();
-        $this->addTitle($this->translate('Performance Data'));
-        $this->tabs(new VCenterTabs($vCenter))->activate('perfdata');
-        $this->content()->add(Html::tag('p', $this->translate(
-            'This module can collect Performance Data from your vCenters or ESXi Hosts.'
-            . ' Different on '
-        )));
-    }
-
     public function countersAction()
     {
         $vCenter = $this->requireVCenter();

@@ -5,24 +5,19 @@ namespace Icinga\Module\Vspheredb\Web\Tabs;
 use gipfl\Translation\TranslationHelper;
 use gipfl\IcingaWeb2\Widget\Tabs;
 use Exception;
-use Icinga\Authentication\Auth;
 use Icinga\Module\Vspheredb\Db;
 use Icinga\Module\Vspheredb\Db\Migrations;
 
-class MainTabs extends Tabs
+class ConfigTabs extends Tabs
 {
     use TranslationHelper;
 
     /** @var Db|null  */
     protected $connection;
 
-    /** @var Auth */
-    protected $auth;
-
-    public function __construct(Auth $auth, Db $connection = null)
+    public function __construct(Db $connection = null)
     {
         $this->connection = $connection;
-        $this->auth = $auth;
         // We are not a BaseElement, not yet
         $this->assemble();
     }
@@ -39,23 +34,36 @@ class MainTabs extends Tabs
             }
         }
 
+        $this->add('configuration', [
+            'label' => $this->translate('Configuration'),
+            'url'   => 'vspheredb/configuration',
+        ]);
+
         if ($connection) {
             $migrations = new Migrations($connection);
 
-            if ($migrations->hasSchema()) {
-                $this->add('vcenters', [
-                    'label'     => $this->translate('vCenters'),
-                    'url'       => 'vspheredb/vcenters',
-                ]);
+            if (! $migrations->hasSchema()) {
+                return;
             }
         } else {
             $migrations = null;
+            return;
         }
 
+        $this->add('servers', [
+            'label' => $this->translate('Servers'),
+            'url' => 'vspheredb/configuration/servers',
+        ]);
+        $this->add('perfdata', [
+            'label' => $this->translate('Performance Data'),
+            'url'   => 'vspheredb/configuration/perfdata',
+        ]);
+
+        // Disable Tab unless #160 is ready
         if ($migrations && $migrations->hasSchema()) {
-            $this->add('daemon', [
-                'label' => $this->translate('Daemon'),
-                'url' => 'vspheredb/daemon',
+            $this->add('monitoring', [
+                'label' => $this->translate('Monitoring'),
+                'url' => 'vspheredb/configuration/monitoring',
             ]);
         }
     }
