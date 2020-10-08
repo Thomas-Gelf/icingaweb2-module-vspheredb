@@ -624,9 +624,7 @@ table {
 }
 
 div.object-summaries {
-  background-color: @text-color;
   border-radius: 0.5em;
-  color: @text-color-inverted;
   padding: 0.25em 0.25em 0.25em 0.25em;
   vertical-align: middle;
 
@@ -657,31 +655,32 @@ div.object-summaries {
       box-shadow: inset 0 0 4em 4em rgba(255,255,255,0.3);
     }
     &.chosen {
-      border-color: white;
+      border-color: @text-color;
     }
   }
 
   a.red, a.poweredoff, a.suspended {
-    color: white;
+    color: @text-color-inverted;
     background-color: @color-critical;
   }
 
   a.yellow, a.standby {
-    color: white;
+    color: @text-color-inverted;
     background-color: @color-warning;
   }
 
   a.green, a.poweredon {
-    color: white;
+    color: @text-color-inverted;
     background-color: @color-ok;
   }
 
   a.unknown {
-    color: white;
+    color: @text-color-inverted;
     background-color: @color-unknown;
   }
 
   a.gray {
+    color: @text-color-inverted;
     background-color: @gray;
   }
 }
