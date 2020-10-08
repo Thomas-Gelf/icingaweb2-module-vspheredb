@@ -10,11 +10,15 @@ use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\HostNetwork;
 use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceSet;
 use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\VmDisks;
 use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\VmNetwork;
-use Icinga\Module\Vspheredb\Rpc\Logger;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\NullLogger;
 use React\EventLoop\LoopInterface;
 
-class InfluxDbStreamer
+class InfluxDbStreamer implements LoggerAwareInterface
 {
+    use LoggerAwareTrait;
+
     /** @var VCenter */
     protected $vCenter;
 
@@ -46,17 +50,16 @@ class InfluxDbStreamer
     {
         $this->vCenter = $vCenter;
         $this->loop = $loop;
+        $this->setLogger(new NullLogger());
     }
 
     /**
      * @param $baseUrl
      * @param $dbName
-     * @throws \Icinga\Exception\AuthenticationException
-     * @throws \Icinga\Exception\NotFoundError
      */
     public function streamTo($baseUrl, $dbName)
     {
-        Logger::info("Streaming to $baseUrl");
+        $this->logger->info("Streaming to $baseUrl");
         if ($this->influx !== null) {
             // throw new \RuntimeException('Cannot start to stream while streaming');
         }
@@ -84,7 +87,9 @@ class InfluxDbStreamer
      */
     public function streamSet(PerformanceSet $performanceSet, $dbName)
     {
+        $this->logger->info('Starting to stream set: ' . $performanceSet->getMeasurementName());
         $this->loop->addPeriodicTimer(3, function () use ($dbName) {
+            $this->logger->debug('New 3sec timer');
             $this->sendNextBatch($dbName);
         });
         $counters = $performanceSet->getCounters();
@@ -100,8 +105,6 @@ class InfluxDbStreamer
                 $performanceSet->getMeasurementName(),
                 $tags
             );
-            // Logger::info('Flushing queue');
-            // $this->flushQueue($dbName);
             $metrics->next();
         }
 
@@ -120,7 +123,7 @@ class InfluxDbStreamer
 
         $linesWaitingForInflux = \count($batch);
         $this->influx->send($dbName, $batch)->then(function () use (&$linesWaitingForInflux, $dbName) {
-            Logger::info(sprintf(
+            $this->logger->info(sprintf(
                 'Sent %d lines to InfluxDB',
                 $linesWaitingForInflux
             ));
@@ -128,13 +131,13 @@ class InfluxDbStreamer
                 $this->sendNextBatch($dbName);
             });
         })->otherwise(function (\Exception $e) use (&$linesWaitingForInflux) {
-            Logger::error(sprintf(
+            $this->logger->error(sprintf(
                 'Failed to send %d lines to InfluxDB: %s',
                 $linesWaitingForInflux,
                 $e->getMessage()
             ));
             if ($e instanceof ResponseException) {
-                Logger::error($e->getResponse()->getBody());
+                $this->logger->error($e->getResponse()->getBody());
             }
         })->always(function () use (&$linesWaitingForInflux) {
             $linesWaitingForInflux = 0;
@@ -158,12 +161,12 @@ class InfluxDbStreamer
             }
             $this->linesWaitingForInflux = count($batch);
             $this->influx->send($dbName, $batch)->then(function () {
-                Logger::debug(sprintf(
+                $this->logger->debug(sprintf(
                     'Sent %d lines to InfluxDB',
                     $this->linesWaitingForInflux
                 ));
             })->otherwise(function (\Exception $e) {
-                Logger::error(sprintf(
+                $this->logger->error(sprintf(
                     'Failed to send %d lines to InfluxDB: %s',
                     $this->linesWaitingForInflux,
                     $e->getMessage()
