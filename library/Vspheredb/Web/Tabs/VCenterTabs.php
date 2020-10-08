@@ -32,10 +32,6 @@ class VCenterTabs extends Tabs
             'label' => $this->translate('Clusters'),
             'url'   => 'vspheredb/resources/clusters',
             'urlParams' => ['vcenter' => $hexUuid],
-        ])->add('perfdata', [
-            'label' => $this->translate('Performance Data'),
-            'url'   => 'vspheredb/perfdata',
-            'urlParams' => ['vcenter' => $hexUuid],
         ])->add('perfcounters', [
             'label' => $this->translate('Counters'),
             'url'   => 'vspheredb/perfdata/counters',
