@@ -5,7 +5,7 @@ namespace Icinga\Module\Vspheredb\PerformanceData\PerformanceSet;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Zend_Db_Adapter_Pdo_Abstract as DbAdapter;
 
-class DiskTagHelper
+class VmDiskTagHelper
 {
     /** @var DbAdapter */
     protected $db;

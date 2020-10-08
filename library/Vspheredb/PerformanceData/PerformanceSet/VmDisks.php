@@ -81,6 +81,6 @@ class VmDisks extends PerformanceSet
 
     public function fetchObjectTags()
     {
-        return (new DiskTagHelper($this->vCenter))->fetchVmTags();
+        return (new VmDiskTagHelper($this->vCenter))->fetchVmTags();
     }
 }
