@@ -8,19 +8,23 @@ use Icinga\Module\Vspheredb\MappedClass\PerfMetricId;
 use Icinga\Module\Vspheredb\MappedClass\PerformanceManager;
 use Icinga\Module\Vspheredb\MappedClass\PerfQuerySpec;
 use Icinga\Module\Vspheredb\PropertySet\PropertySet;
-use Icinga\Module\Vspheredb\Rpc\Logger;
 use Icinga\Module\Vspheredb\SelectSet\SelectSet;
 use Icinga\Module\Vspheredb\VmwareDataType\ManagedObjectReference;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 
 class PerfManager
 {
+    use LoggerAwareTrait;
+
     /** @var Api */
     protected $api;
 
     protected $obj;
 
-    public function __construct(Api $api)
+    public function __construct(Api $api, LoggerInterface $logger)
     {
+        $this->setLogger($logger);
         $this->api = $api;
         $this->obj = $api->getServiceInstance()->perfManager;
     }
@@ -210,7 +214,7 @@ class PerfManager
         if (isset($result->returnval)) {
             return $result->returnval;
         } else {
-            Logger::error('no returnval');
+            $this->logger->error('no returnval');
             return [];
         }
     }

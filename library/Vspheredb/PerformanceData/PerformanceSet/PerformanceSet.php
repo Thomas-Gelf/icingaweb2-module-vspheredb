@@ -6,9 +6,14 @@ use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\MappedClass\PerfMetricId;
 use Icinga\Module\Vspheredb\MappedClass\PerfQuerySpec;
 use Icinga\Module\Vspheredb\VmwareDataType\ManagedObjectReference;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\NullLogger;
 
-abstract class PerformanceSet
+abstract class PerformanceSet implements LoggerAwareInterface
 {
+    use LoggerAwareTrait;
+
     /** @var VCenter */
     protected $vCenter;
 
@@ -26,6 +31,7 @@ abstract class PerformanceSet
     {
         $this->vCenter = $vCenter;
         $this->db = $vCenter->getDb();
+        $this->logger = new NullLogger();
     }
 
     abstract public function getMeasurementName();
@@ -70,16 +76,20 @@ abstract class PerformanceSet
      */
     public function fetch()
     {
-        $perf = $this->vCenter->getApi()->perfManager();
+        $perf = $this->vCenter->getApi($this->logger)->perfManager();
         $vms = $this->getRequiredMetrics();
+        $this->logger->info('Fetching ' . $this->getMeasurementName() . ' for ' . count($vms) . ' VMs');
         foreach (array_chunk($vms, 100, true) as $set) {
-            $res = $perf->queryPerf($this->prepareQuerySpec($set));
+            $this->logger->info('Fetching ' . count($set) . ' chunks for ' . $this->getMeasurementName());
+            $spec = $this->prepareQuerySpec($set);
+            $res = $perf->queryPerf($spec);
+            $this->logger->info('Got result');
             if (empty($res)) {
-                // TODO: This happens. Why?
-                print_r($set);
+                // TODO: This happens. Why? Inspect set?
+                $this->logger->warning('Got EMPTY result');
                 continue;
-                die('Got no result');
             }
+            $this->logger->debug('Got ' . count($res) . ' results for ' . $this->getMeasurementName());
             foreach ($res as $r) {
                 yield $r;
             }

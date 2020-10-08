@@ -3,18 +3,21 @@
 namespace Icinga\Module\Vspheredb;
 
 use Exception;
-use Icinga\Application\Logger;
 use Icinga\Exception\AuthenticationException;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\MappedClass\BaseMigrationEvent;
 use Icinga\Module\Vspheredb\MappedClass\KnownEvent;
 use Icinga\Module\Vspheredb\MappedClass\SessionEvent;
 use Icinga\Module\Vspheredb\VmwareDataType\ManagedObjectReference;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Zend_Db_Select as ZfSelect;
 
 class EventManager
 {
+    use LoggerAwareTrait;
+
     /** @var Api */
     protected $api;
 
@@ -36,8 +39,9 @@ class EventManager
      * EventManager constructor.
      * @param Api $api
      */
-    public function __construct(Api $api)
+    public function __construct(Api $api, LoggerInterface $logger)
     {
+        $this->setLogger($logger);
         $this->api = $api;
         $this->obj = $api->getServiceInstance()->eventManager;
     }
@@ -131,7 +135,7 @@ class EventManager
                     && $event->getTimestampMs() <= $this->lastEventTimestamp
                     && $event->key <= $this->lastEventKey
                 ) {
-                    Logger::debug(sprintf(
+                    $this->logger->debug(sprintf(
                         '%s <= %s & %s <= %s skipped',
                         $event->getTimestampMs(),
                         $this->lastEventTimestamp,
@@ -167,7 +171,7 @@ class EventManager
         }
 
         if ($skipped > 0) {
-            Logger::debug('Fetched %d events to skip', $skipped);
+            $this->logger->debug(sprintf('Fetched %d events to skip', $skipped));
         }
 
         return count($events);
@@ -253,7 +257,7 @@ class EventManager
     {
         if (isset($fault->detail) && current($fault->detail)->enc_stype === 'ManagedObjectNotFound') {
             $this->collector = null;
-            Logger::warning('Dropping formerly known EventCollector: ' . $fault->getMessage());
+            $this->logger->warning('Dropping formerly known EventCollector: ' . $fault->getMessage());
         }
     }
 

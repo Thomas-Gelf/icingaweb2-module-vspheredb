@@ -2,7 +2,6 @@
 
 namespace Icinga\Module\Vspheredb\Sync;
 
-use Icinga\Application\Logger;
 use Icinga\Module\Vspheredb\DbObject\VirtualMachine;
 use Icinga\Module\Vspheredb\DbObject\VmDisk;
 use Icinga\Module\Vspheredb\DbObject\VmHardware;
@@ -27,32 +26,32 @@ class SyncVmHardware
     public function run()
     {
         $vCenter = $this->vCenter;
-        $result = $vCenter->getApi()->propertyCollector()->collectObjectProperties(
+        $result = $vCenter->getApi($this->logger)->propertyCollector()->collectObjectProperties(
             new PropertySet('VirtualMachine', ['config.hardware']),
             VirtualMachine::getSelectSet()
         );
 
-        Logger::debug(
+        $this->logger->debug(sprintf(
             'Got %d VirtualMachines with config.hardware',
             count($result)
-        );
+        ));
 
         $connection = $vCenter->getConnection();
         $hardware = VmHardware::loadAllForVCenter($vCenter);
-        Logger::debug(
+        $this->logger->debug(sprintf(
             'Got %d vm_hardware objects from DB',
             count($hardware)
-        );
+        ));
         $disks = VmDisk::loadAllForVCenter($vCenter);
-        Logger::debug(
+        $this->logger->debug(sprintf(
             'Got %d vm_disk objects from DB',
             count($disks)
-        );
+        ));
         $nics = VmNetworkAdapter::loadAllForVCenter($vCenter);
-        Logger::debug(
+        $this->logger->debug(sprintf(
             'Got %d vm_network_adapter objects from DB',
             count($nics)
-        );
+        ));
 
         $seen = [];
         foreach ($result as $vm) {

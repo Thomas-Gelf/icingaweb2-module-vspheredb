@@ -4,12 +4,13 @@ namespace Icinga\Module\Vspheredb;
 
 use DateTime;
 use Exception;
-use Icinga\Application\Logger;
 use Icinga\Exception\AuthenticationException;
 use Icinga\Module\Vspheredb\DbObject\VCenterServer;
 use Icinga\Module\Vspheredb\MappedClass\ApiClassMap;
 use Icinga\Module\Vspheredb\PropertySet\PropertySet;
 use Icinga\Module\Vspheredb\SelectSet\SelectSet;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 use SoapVar;
 
 /**
@@ -20,6 +21,7 @@ use SoapVar;
 class Api
 {
     use LazyApiHelpers;
+    use LoggerAwareTrait;
 
     /** @var CurlLoader */
     private $curl;
@@ -89,7 +91,7 @@ class Api
      * @param VCenterServer $server
      * @return static
      */
-    public static function forServer(VCenterServer $server)
+    public static function forServer(VCenterServer $server, LoggerInterface $logger)
     {
         $host = $server->get('host');
         if (preg_match('/^(.+?):(\d{1,5})$/', $host, $match)) {
@@ -105,6 +107,7 @@ class Api
             $server->get('password'),
             $port
         );
+        $api->setLogger($logger);
 
         $api->vCenterServer = $server;
 
@@ -133,7 +136,6 @@ class Api
 
         return $api;
     }
-
 
     /**
      * @return DateTime
@@ -165,7 +167,7 @@ class Api
     public function gotCookie($cookie)
     {
         // vmware_soap_session="d4a9b281fb7e587ef73a5097fe591bfbaa420ccd"; Path=/; HttpOnly; Secure;
-        Logger::info('Got new session cookie from VCenter');
+        $this->logger->info('Got new session cookie from VCenter');
         return;
         $parts = explode(';', $cookie);
         list($name, $sid) = preg_split('/=/', $parts[0], 2);
@@ -259,7 +261,7 @@ class Api
 
                 throw $e;
             }
-            $soap->setCurl($this->curl());
+            $soap->setCurl($this->curl())->setLogger($this->logger);
             $this->soapClient = $soap;
         }
 
@@ -275,7 +277,7 @@ class Api
         $dir = $this->cacheDir();
         foreach ($this->wsdlFiles as $file) {
             if (! file_exists("$dir/$file")) {
-                Logger::info("Loading sdk/$file");
+                $this->logger->info("Loading sdk/$file");
                 $wsdl = $curl->get($curl->url("sdk/$file"));
                 file_put_contents("$dir/$file", $wsdl);
             }
@@ -285,7 +287,7 @@ class Api
     protected function flushWsdlCache()
     {
         $dir = $this->cacheDir();
-        Logger::info("Flushing WSDL Cache in $dir");
+        $this->logger->info("Flushing WSDL Cache in $dir");
         foreach ($this->wsdlFiles as $file) {
             if (file_exists("$dir/$file")) {
                 unlink("$dir/$file");
@@ -329,11 +331,11 @@ class Api
     public function login()
     {
         if ($this->curl()->hasCookie()) {
-            Logger::debug('Using existing Cookie');
+            $this->logger->debug('Using existing Cookie');
             return $this;
         }
 
-        Logger::debug('Sending Login request to %s', $this->makeLocation());
+        $this->logger->debug(sprintf('Sending Login request to %s', $this->makeLocation()));
         $request = array(
             '_this'    => $this->getServiceInstance()->sessionManager,
             'userName' => $this->user,
@@ -388,10 +390,10 @@ class Api
      */
     public function makePropertyFilterSpec(PropertySet $propSet, SelectSet $selectSet)
     {
-        return array(
+        return [
             'propSet'   => $propSet->toArray(),
             'objectSet' => $this->makeObjectSet($selectSet)
-        );
+        ];
     }
 
     /**

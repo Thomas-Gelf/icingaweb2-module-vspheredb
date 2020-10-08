@@ -2,8 +2,8 @@
 
 namespace Icinga\Module\Vspheredb;
 
-use Icinga\Application\Logger;
 use Icinga\Util\Format;
+use Psr\Log\LoggerAwareTrait;
 use SoapClient as PhpSoapClient;
 
 /**
@@ -18,6 +18,8 @@ use SoapClient as PhpSoapClient;
  */
 class SoapClient extends PhpSoapClient
 {
+    use LoggerAwareTrait;
+
     /** @var CurlLoader */
     protected $curl;
 
@@ -45,6 +47,13 @@ class SoapClient extends PhpSoapClient
     /**
      * Delegates the request to our CurlLoader
      *
+     * @param $request
+     * @param $location
+     * @param $action
+     * @param $version
+     * @param int $one_way
+     * @return mixed
+     * @throws \Icinga\Exception\AuthenticationException
      * @see PhpSoapClient::__doRequest()
      */
     public function doCurlRequest($request, $location, $action, $version, $one_way = 0)
@@ -59,15 +68,17 @@ class SoapClient extends PhpSoapClient
         // TODO: we might want to collect summaries for sent/received bytes
         // Logger::debug('SOAPClient: ready to send %s', Format::bytes(strlen($request)));
         $result = $this->curl->post($location, $request, $headers);
-        Logger::debug(
-            'SOAPClient: sent %s in %.02fms, waited %.02fms, got %s response in %0.2fms. Total duration: %.02fms',
-            Format::bytes(strlen($request)),
-            $this->curl->getLastRequestDuration() * 1000,
-            $this->curl->getTimeWaitingForFirstHeader() * 1000,
-            Format::bytes(strlen($result)),
-            $this->curl->getLastResponseDuration() * 1000,
-            $this->curl->getTotalDuration() * 1000
-        );
+        if ($this->logger) {
+            $this->logger->debug(sprintf(
+                'SOAPClient: sent %s in %.02fms, waited %.02fms, got %s response in %0.2fms. Total duration: %.02fms',
+                Format::bytes(strlen($request)),
+                $this->curl->getLastRequestDuration() * 1000,
+                $this->curl->getTimeWaitingForFirstHeader() * 1000,
+                Format::bytes(strlen($result)),
+                $this->curl->getLastResponseDuration() * 1000,
+                $this->curl->getTotalDuration() * 1000
+            ));
+        }
 
         if ($this->dumpRawData) {
             echo "$request\n====\n$result\n";

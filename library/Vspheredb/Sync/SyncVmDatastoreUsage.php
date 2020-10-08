@@ -3,20 +3,24 @@
 namespace Icinga\Module\Vspheredb\Sync;
 
 use Exception;
-use Icinga\Application\Logger;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\DbObject\VirtualMachine;
 use Icinga\Module\Vspheredb\PropertySet\PropertySet;
 use Icinga\Module\Vspheredb\Util;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 
 class SyncVmDatastoreUsage
 {
+    use LoggerAwareTrait;
+
     /** @var VCenter */
     protected $vCenter;
 
-    public function __construct(VCenter $vCenter)
+    public function __construct(VCenter $vCenter, LoggerInterface $logger)
     {
         $this->vCenter = $vCenter;
+        $this->setLogger($logger);
     }
 
     /**
@@ -31,11 +35,11 @@ class SyncVmDatastoreUsage
         // Hint/TODO: well... this will always trigger on the very first run
         $this->refreshOutdatedDatastores();
 
-        $result = $vCenter->getApi()->propertyCollector()->collectObjectProperties(
+        $result = $vCenter->getApi($this->logger)->propertyCollector()->collectObjectProperties(
             new PropertySet('VirtualMachine', ['storage.perDatastoreUsage', 'storage.timestamp']),
             VirtualMachine::getSelectSet()
         );
-        Logger::debug('Got VirtualMachine perDatastoreUsage');
+        $this->logger->debug('Got VirtualMachine perDatastoreUsage');
 
         $vCenterUuid = $vCenter->get('uuid');
         $table = 'vm_datastore_usage';
@@ -101,7 +105,7 @@ class SyncVmDatastoreUsage
             }
 
             $db->commit();
-            Logger::debug("$insert created, $update changed, $delete deleted");
+            $this->logger->debug("$insert created, $update changed, $delete deleted");
         } catch (Exception $error) {
             try {
                 $db->rollBack();
@@ -157,12 +161,12 @@ class SyncVmDatastoreUsage
             return;
         }
 
-        Logger::info(sprintf(
+        $this->logger->info(sprintf(
             'Calling RefreshDatastoreStorageInfo on %d outdated Datastore(s)',
             count($dataStores)
         ));
 
-        $api = $vCenter->getApi();
+        $api = $vCenter->getApi($this->logger);
         foreach (array_keys($dataStores) as $moref) {
             $api->soapCall('RefreshDatastoreStorageInfo', [
                 '_this'   => $moref,
@@ -203,12 +207,12 @@ class SyncVmDatastoreUsage
             return;
         }
 
-        Logger::info(sprintf(
+        $this->logger->info(sprintf(
             'Calling RefreshStorageInfo on %d outdated VirtualMachine(s)',
             count($vms)
         ));
 
-        $api = $vCenter->getApi();
+        $api = $vCenter->getApi($this->logger);
         foreach (array_keys($vms) as $moref) {
             $api->soapCall('RefreshStorageInfo', [
                 '_this'   => $moref,

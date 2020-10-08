@@ -3,14 +3,18 @@
 namespace Icinga\Module\Vspheredb\Sync;
 
 use Exception;
-use Icinga\Application\Logger;
 use Icinga\Module\Vspheredb\Exception\DuplicateKeyException;
 use Icinga\Module\Vspheredb\DbObject\ManagedObject;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\SelectSet\FullSelectSet;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\NullLogger;
 
-class SyncManagedObjectReferences
+class SyncManagedObjectReferences implements LoggerAwareInterface
 {
+    use LoggerAwareTrait;
+
     /** @var VCenter */
     private $vCenter;
 
@@ -21,6 +25,7 @@ class SyncManagedObjectReferences
     public function __construct(VCenter $vCenter)
     {
         $this->vCenter = $vCenter;
+        $this->setLogger(new NullLogger());
     }
 
     /**
@@ -31,9 +36,9 @@ class SyncManagedObjectReferences
     public function sync()
     {
         $vCenter = $this->vCenter;
-        Logger::debug('Ready to fetch id/name/parent list');
+        $this->logger->debug('Ready to fetch id/name/parent list');
         $all = $this->fetchNames();
-        Logger::debug('Got id/name/parent for %d objects', count($all));
+        $this->logger->debug(sprintf('Got id/name/parent for %d objects', count($all)));
         $db = $this->vCenter->getConnection();
 
         /** @var ManagedObject[] $objects */
@@ -77,7 +82,7 @@ class SyncManagedObjectReferences
         }
 
         if (! empty($vmUuidsWithNoParent)) {
-            Logger::debug(\sprintf(
+            $this->logger->debug(\sprintf(
                 'There are %d VMs without parent',
                 \count($vmUuidsWithNoParent)
             ));
@@ -89,14 +94,14 @@ class SyncManagedObjectReferences
                     $objects[$nameUuids[$parentName]]
                 );
             } else {
-                Logger::error(
+                $this->logger->error(sprintf(
                     "Could not find parent $parentName for %s",
                     $fetched[$uuid]
-                );
+                ));
             }
         }
 
-        Logger::debug('Storing object tree to DB');
+        $this->logger->debug('Storing object tree to DB');
         $dba = $this->vCenter->getDb();
         $dba->beginTransaction();
         try {
@@ -161,14 +166,14 @@ class SyncManagedObjectReferences
         }
 
         if (count($new) + count($mod) + count($del) === 0) {
-            Logger::debug('Managed Objects have not been changed');
+            $this->logger->debug('Managed Objects have not been changed');
         } else {
-            Logger::debug(
+            $this->logger->debug(sprintf(
                 'Created %d Managed Objects, %d modified, %d deleted',
                 count($new),
                 count($mod),
                 count($del)
-            );
+            ));
         }
 
         return $this;
@@ -176,7 +181,7 @@ class SyncManagedObjectReferences
 
     protected function fetchNames()
     {
-        return $this->vCenter->getApi()->propertyCollector()->collectProperties(
+        return $this->vCenter->getApi($this->logger)->propertyCollector()->collectProperties(
             $this->prepareNameSpecSet()
         );
     }
@@ -212,7 +217,7 @@ class SyncManagedObjectReferences
         return [
             'propSet' => $propSet,
             'objectSet' => [
-                'obj'  => $this->vCenter->getApi()->getServiceInstance()->rootFolder,
+                'obj'  => $this->vCenter->getApi($this->logger)->getServiceInstance()->rootFolder,
                 'skip' => false,
                 'selectSet' => (new FullSelectSet())->toArray(),
             ]

@@ -2,7 +2,6 @@
 
 namespace Icinga\Module\Vspheredb\Sync;
 
-use Icinga\Application\Logger;
 use Icinga\Module\Vspheredb\DbObject\HostSensor;
 use Icinga\Module\Vspheredb\DbObject\HostSystem;
 use Icinga\Module\Vspheredb\MappedClass\HostNumericSensorInfo;
@@ -16,23 +15,23 @@ class SyncHostSensors
     {
         $vCenter = $this->vCenter;
         $baseKey = 'runtime.healthSystemRuntime.systemHealthInfo.numericSensorInfo';
-        $result = $vCenter->getApi()->propertyCollector()->collectObjectProperties(
+        $result = $vCenter->getApi($this->logger)->propertyCollector()->collectObjectProperties(
             new PropertySet('HostSystem', [$baseKey]),
             HostSystem::getSelectSet()
         );
 
-        Logger::debug(
+        $this->logger->debug(sprintf(
             'Got %d HostSensors with %s',
             $baseKey,
             count($result)
-        );
+        ));
 
         $connection = $vCenter->getConnection();
         $sensors = HostSensor::loadAllForVCenter($vCenter);
-        Logger::debug(
+        $this->logger->debug(sprintf(
             'Got %d host_sensor objects from DB',
             count($sensors)
-        );
+        ));
 
         $seen = [];
         foreach ($result as $host) {

@@ -2,7 +2,6 @@
 
 namespace Icinga\Module\Vspheredb\Sync;
 
-use Icinga\Application\Logger;
 use Icinga\Module\Vspheredb\DbObject\VirtualMachine;
 use Icinga\Module\Vspheredb\DbObject\VmSnapshot;
 use Icinga\Module\Vspheredb\PropertySet\PropertySet;
@@ -15,22 +14,22 @@ class SyncVmSnapshots
     {
         $vCenter = $this->vCenter;
         $vCenterUuid = $vCenter->get('uuid');
-        $result = $vCenter->getApi()->propertyCollector()->collectObjectProperties(
+        $result = $vCenter->getApi($this->logger)->propertyCollector()->collectObjectProperties(
             new PropertySet('VirtualMachine', ['snapshot']),
             VirtualMachine::getSelectSet()
         );
 
-        Logger::debug(
+        $this->logger->debug(sprintf(
             'Got %d VirtualMachines with snapshot',
             count($result)
-        );
+        ));
 
         $connection = $vCenter->getConnection();
         $existing = VmSnapshot::loadAllForVCenter($vCenter);
-        Logger::debug(
+        $this->logger->debug(sprintf(
             'Got %d vm_snapshot objects from DB',
             count($existing)
-        );
+        ));
 
         $seen = [];
         foreach ($result as $vm) {

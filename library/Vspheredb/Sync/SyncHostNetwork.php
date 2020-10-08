@@ -2,7 +2,6 @@
 
 namespace Icinga\Module\Vspheredb\Sync;
 
-use Icinga\Application\Logger;
 use Icinga\Module\Vspheredb\DbObject\HostPhysicalNic;
 use Icinga\Module\Vspheredb\DbObject\HostSystem;
 use Icinga\Module\Vspheredb\DbObject\HostVirtualNic;
@@ -17,15 +16,15 @@ class SyncHostNetwork
     {
         $hostNetProperty = 'config.network';
         $vCenter = $this->vCenter;
-        $result = $vCenter->getApi()->propertyCollector()->collectObjectProperties(
+        $result = $vCenter->getApi($this->logger)->propertyCollector()->collectObjectProperties(
             new PropertySet('HostSystem', [$hostNetProperty]),
             HostSystem::getSelectSet()
         );
 
-        Logger::debug(
+        $this->logger->debug(sprintf(
             'Got %d HostSystems with config.network',
             \count($result)
-        );
+        ));
 
         $connection = $vCenter->getConnection();
         /*
@@ -41,15 +40,15 @@ class SyncHostNetwork
         );
         */
         $pNics = HostPhysicalNic::loadAllForVCenter($vCenter);
-        Logger::debug(
+        $this->logger->debug(sprintf(
             'Got %d host_physical_nic objects from DB',
             count($pNics)
-        );
+        ));
         $vNics = HostVirtualNic::loadAllForVCenter($vCenter);
-        Logger::debug(
+        $this->logger->debug(sprintf(
             'Got %d host_virtual_nic objects from DB',
             count($vNics)
-        );
+        ));
 
         $seen = [];
         $vSeen = [];

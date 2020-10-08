@@ -53,8 +53,8 @@ class HostSystem extends BaseDbObject
         'runtime.powerState'                => 'runtime_power_state',
         // TODO: Introduce HostRuntimeInfo?
         // https://<vcenter>/mob/?moid=ha%2dhost&doPath=runtime
-        // runtime.inMaintenanceMode	boolean	false
-        // runtime.inQuarantineMode	boolean	Unset
+        // runtime.inMaintenanceMode   boolean  false
+        // runtime.inQuarantineMode    boolean  Unset
         'runtime.dasHostState'              => 'dasHostState',
         'summary.customValue'               => 'customValues',
         'summary.hardware.cpuMhz'           => 'hardware_cpu_mhz',

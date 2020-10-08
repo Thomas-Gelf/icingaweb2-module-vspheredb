@@ -66,7 +66,10 @@ class InfluxDbStreamer implements LoggerAwareInterface
 
         foreach (PerformanceSets::listAvailableSets() as $class) {
             $this->loop->futureTick(function () use ($class, $dbName) {
-                $this->streamSet(new $class($this->vCenter), $dbName);
+                /** @var PerformanceSet $set */
+                $set = new $class($this->vCenter);
+                $set->setLogger($this->logger);
+                $this->streamSet($set, $dbName);
             });
         }
     }

@@ -5,21 +5,19 @@ namespace Icinga\Module\Vspheredb\Daemon;
 use Exception;
 use Evenement\EventEmitterTrait;
 use gipfl\IcingaCliDaemon\RetryUnless;
-use Icinga\Application\Logger;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\DbObject\VCenterServer;
 use Icinga\Module\Vspheredb\LinuxUtils;
 use Icinga\Module\Vspheredb\Rpc\LogProxy;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 use React\ChildProcess\Process;
 use React\EventLoop\LoopInterface;
 
-/**
- * Class ServerRunner
- * @package Icinga\Module\Vspheredb\Daemon
- */
 class ServerRunner
 {
     use EventEmitterTrait;
+    use LoggerAwareTrait;
 
     /** @var IcingaCliRunner */
     protected $icingaCli;
@@ -40,9 +38,10 @@ class ServerRunner
 
     protected $timer;
 
-    public function __construct(VCenterServer $server)
+    public function __construct(VCenterServer $server, LoggerInterface $logger)
     {
-        Logger::info('Constructing ServerRunner');
+        $this->setLogger($logger);
+        $this->logger->info('Constructing ServerRunner');
         $this->health = (object) [];
         $this->server = $server;
     }
@@ -90,7 +89,7 @@ class ServerRunner
     {
         $server = $this->server;
         $hostName = $server->get('host');
-        Logger::info('Initializing vCenter for %s', $hostName);
+        $this->logger->info(sprintf('Initializing vCenter for %s', $hostName));
 
         $command = $this->prepareCliCommand($this->prepareCliTaskParams('initialize', [
             '--serverId',
@@ -118,7 +117,7 @@ class ServerRunner
     {
         $id = $vCenter->get('id');
         // TODO: log Host?
-        Logger::info('Running vCenter Sync for ID=%s', $id);
+        $this->logger->info(sprintf('Running vCenter Sync for ID=%s', $id));
         $command = $this->prepareCliCommand($this->prepareCliTaskParams('sync', [
             '--vCenterId',
             $id
@@ -137,13 +136,10 @@ class ServerRunner
             'task',
             $task,
             '--rpc',
+            // TODO: Forward current Log Level?
+            // '--verbose',
+            '--debug',
         ];
-        $level = Logger::getInstance()->getLevel();
-        if ($level === Logger::DEBUG) {
-            $result[] = '--debug';
-        } elseif ($level === Logger::INFO) {
-            $result[] = '--verbose';
-        }
 
         return \array_merge($result, $params);
     }
@@ -193,7 +189,7 @@ class ServerRunner
         $command = new IcingaCliRpc($this->icingaCli);
 
         $command->on('error', function (Exception $e) {
-            Logger::error(rtrim($e->getMessage()));
+            $this->logger->error(rtrim($e->getMessage()));
             $this->stop();
         });
         if ($arguments) {
@@ -209,14 +205,14 @@ class ServerRunner
     protected function stopRunningServers()
     {
         if (! empty($this->running) && $this->loop === null) {
-            Logger::warning('Stopping while there is no more loop');
+            $this->logger->warning('Stopping while there is no more loop');
             return;
         }
         foreach ($this->running as $pid => $process) {
             $process->terminate(SIGTERM);
             $this->loop->addTimer(5, function () use ($process, $pid) {
                 if ($process->isRunning()) {
-                    Logger::error("Process $pid is still running, sending SIGKILL");
+                    $this->logger->error("Process $pid is still running, sending SIGKILL");
                     $process->terminate(SIGKILL);
                 }
             });

@@ -4,9 +4,10 @@ namespace Icinga\Module\Vspheredb\DbObject;
 
 use Icinga\Module\Vspheredb\Api;
 use Icinga\Module\Vspheredb\Db;
-use Icinga\Application\Logger;
 use Icinga\Module\Vspheredb\Util;
 use Icinga\Module\Vspheredb\VmwareDataType\ManagedObjectReference;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 class VCenter extends BaseDbObject
 {
@@ -76,25 +77,20 @@ class VCenter extends BaseDbObject
     }
 
     /**
+     * @param LoggerInterface|null $logger
      * @return Api
      * @throws \Icinga\Exception\NotFoundError
      */
-    public function getApi()
+    public function getApi(LoggerInterface $logger = null)
     {
         if ($this->api === null) {
-            $this->api = $this->createNewApiConnection();
+            if ($logger === null) {
+                $logger = new NullLogger();
+            }
+            $this->api = Api::forServer($this->getFirstServer(), $logger);
         }
 
         return $this->api;
-    }
-
-    /**
-     * @return Api
-     * @throws \Icinga\Exception\NotFoundError
-     */
-    public function createNewApiConnection()
-    {
-        return Api::forServer($this->getFirstServer());
     }
 
     /**
@@ -145,45 +141,5 @@ class VCenter extends BaseDbObject
     public function getConnection()
     {
         return $this->connection;
-    }
-
-    /**
-     * Hint: this also updates the vCenter.
-     *
-     * @param Api $api
-     * @param Db $db
-     * @return VCenter
-     * @throws \Icinga\Exception\AuthenticationException
-     * @throws \Icinga\Exception\NotFoundError
-     * @throws \Icinga\Module\Vspheredb\Exception\DuplicateKeyException
-     */
-    public static function fromApi(Api $api, Db $db, $name)
-    {
-        $about = $api->getAbout();
-        $uuid = $api->getBinaryUuid();
-        if (VCenter::exists($uuid, $db)) {
-            $vCenter = VCenter::load($uuid, $db);
-        } else {
-            $vCenter = VCenter::create([], $db);
-        }
-
-        // Workaround for ESXi, about has no instanceUuid
-        $about->instanceUuid = $uuid;
-        $vCenter->setMapped($about, $vCenter);
-        $vCenter->set('name', $name);
-
-        if ($vCenter->hasBeenModified()) {
-            if ($vCenter->hasBeenLoadedFromDb()) {
-                Logger::info('vCenter has been modified');
-            } else {
-                Logger::info('vCenter has been created');
-            }
-
-            $vCenter->store();
-        } else {
-            Logger::info("vCenter hasn't been changed");
-        }
-
-        return $vCenter;
     }
 }

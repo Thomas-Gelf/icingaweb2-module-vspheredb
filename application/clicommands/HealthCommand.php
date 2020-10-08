@@ -10,7 +10,7 @@ class HealthCommand extends CommandBase
     public function checkAction()
     {
         $vCenter = $this->getVCenter();
-        $api = $vCenter->getApi();
+        $api = $vCenter->getApi($this->logger);
         $time = $api->getCurrentTime()->format('U.u');
         $timeDiff = microtime(true) - (float)$time;
         if (abs($timeDiff) > 0.1) {

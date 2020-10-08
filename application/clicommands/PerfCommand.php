@@ -2,11 +2,9 @@
 
 namespace Icinga\Module\Vspheredb\Clicommands;
 
-use Icinga\Application\Logger;
 use Icinga\Module\Vspheredb\Db;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\PerformanceData\InfluxDbStreamer;
-use React\EventLoop\Factory;
 use React\EventLoop\LoopInterface;
 
 class PerfCommand extends CommandBase
@@ -32,27 +30,27 @@ class PerfCommand extends CommandBase
         }
     }
 
-    protected function fetchAndSend()
-    {
-        if ($this->shouldSend()) {
-            // $this->
-        }
-    }
-
+    /**
+     * Replace with deprecation / sleep / exit
+     */
     public function influxdbAction()
     {
         $vCenter = $this->getVCenter();
         // TODO: fetch baseUrl and dbName from vCenter settings
-        $baseUrl = $this->params->getRequired('baseUrl');
-        $dbName = $this->params->getRequired('db');
-        $loop = Factory::create();
+        try {
+            $baseUrl = $this->params->getRequired('baseUrl');
+            $dbName = $this->params->getRequired('db');
+        } catch (\Exception $e) {
+            $this->failFriendly('influxdb', $e->getMessage());
+        }
+        $loop = $this->loop();
         $streamer = new InfluxDbStreamer($vCenter, $loop);
         $interval = $this->params->get('interval', 60);
         $loop->addPeriodicTimer($interval, function () use ($streamer, $baseUrl, $dbName) {
             if ($streamer->isIdle()) {
                 $streamer->streamTo($baseUrl, $dbName);
             } else {
-                Logger::error('Skipping PerfdataStream, Streamer is still idle');
+                $this->logger->error('Skipping PerfdataStream, Streamer is still idle');
             }
         });
         $streamer->streamTo($baseUrl, $dbName);

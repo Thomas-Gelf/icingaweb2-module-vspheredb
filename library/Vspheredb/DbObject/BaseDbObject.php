@@ -3,7 +3,6 @@
 namespace Icinga\Module\Vspheredb\DbObject;
 
 use Exception;
-use Icinga\Application\Logger;
 use Icinga\Exception\NotFoundError;
 use Icinga\Module\Vspheredb\Db\DbObject as VspheredbDbObject;
 use Icinga\Module\Vspheredb\Api;
@@ -14,6 +13,7 @@ use Icinga\Module\Vspheredb\SelectSet\SelectSet;
 use Icinga\Module\Vspheredb\Util;
 use Icinga\Module\Vspheredb\VmwareDataType\ManagedObjectReference;
 use InvalidArgumentException;
+use Psr\Log\LoggerInterface;
 
 abstract class BaseDbObject extends VspheredbDbObject
 {
@@ -253,18 +253,18 @@ abstract class BaseDbObject extends VspheredbDbObject
 
     /**
      * @param VCenter $vCenter
+     * @param LoggerInterface $logger
      * @param BaseDbObject[] $dbObjects
      * @param \stdClass[] $newObjects
      * @throws \Icinga\Module\Vspheredb\Exception\DuplicateKeyException
-     * @throws \Zend_Db_Exception
      */
-    protected static function storeSync(VCenter $vCenter, &$dbObjects, &$newObjects)
+    protected static function storeSync(VCenter $vCenter, LoggerInterface $logger, &$dbObjects, &$newObjects)
     {
         $type = static::getType();
         $vCenterUuid = $vCenter->getUuid();
         $db = $vCenter->getConnection();
         $dba = $vCenter->getDb();
-        Logger::debug("Ready to store $type");
+        $logger->debug("Ready to store $type");
         $dba->beginTransaction();
         try {
             $modified = 0;
@@ -316,6 +316,7 @@ abstract class BaseDbObject extends VspheredbDbObject
             }
             $dba->commit();
         } catch (Exception $error) {
+            $logger->error('Storing Sync failed: ' . $error->getMessage());
             try {
                 $dba->rollBack();
                 /** @var $dba \Zend_Db_Adapter_Pdo_Abstract */
@@ -325,13 +326,13 @@ abstract class BaseDbObject extends VspheredbDbObject
 
             throw $error;
         }
-        Logger::debug(
+        $logger->debug(sprintf(
             "$type: %d new, %d modified, %d deleted (got %d from API)",
             $created,
             $modified,
             count($del),
             count($newObjects)
-        );
+        ));
     }
 
     public static function onStoreSync(Db $db)
@@ -358,20 +359,21 @@ abstract class BaseDbObject extends VspheredbDbObject
 
     /**
      * @param VCenter $vCenter
+     * @param LoggerInterface $logger
      * @throws NotFoundError
      * @throws \Icinga\Module\Vspheredb\Exception\DuplicateKeyException
      * @throws \Zend_Db_Exception
      */
-    public static function syncFromApi(VCenter $vCenter)
+    public static function syncFromApi(VCenter $vCenter, LoggerInterface $logger)
     {
         $type = static::getType();
         $db = $vCenter->getConnection();
-        Logger::debug("Loading existing $type from DB");
+        $logger->debug("Loading existing $type from DB");
         $existing = static::loadAllForVCenter($vCenter);
-        Logger::debug("Got %d existing $type", count($existing));
-        $objects = static::fetchAllFromApi($vCenter->getApi());
-        Logger::debug("Got %d $type from VCenter", count($objects));
-        static::storeSync($vCenter, $existing, $objects);
+        $logger->debug(sprintf("Got %d existing $type", count($existing)));
+        $objects = static::fetchAllFromApi($vCenter->getApi($logger));
+        $logger->debug(sprintf("Got %d $type from VCenter", count($objects)));
+        static::storeSync($vCenter, $logger, $existing, $objects);
         static::onStoreSync($db);
     }
 }

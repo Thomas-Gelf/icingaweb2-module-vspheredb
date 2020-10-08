@@ -5,7 +5,6 @@ namespace Icinga\Module\Vspheredb\Daemon;
 use Exception;
 use gipfl\SystemD\NotifySystemD;
 use gipfl\IcingaCliDaemon\RetryUnless;
-use Icinga\Application\Logger;
 use Icinga\Application\Platform;
 use Icinga\Data\ConfigObject;
 use Icinga\Module\Vspheredb\CliUtil;
@@ -16,12 +15,15 @@ use Icinga\Module\Vspheredb\DbObject\VCenterServer;
 use Icinga\Module\Vspheredb\LinuxUtils;
 use Icinga\Module\Vspheredb\Rpc\LogProxy;
 use Icinga\Module\Vspheredb\Util;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 use React\EventLoop\Factory as Loop;
 use React\EventLoop\LoopInterface;
 use RuntimeException;
 
 class Daemon
 {
+    use LoggerAwareTrait;
     use StateMachine;
 
     /** @var LoopInterface */
@@ -49,8 +51,9 @@ class Daemon
 
     protected $lastCliTitle;
 
-    public function __construct()
+    public function __construct(LoggerInterface $logger)
     {
+        $this->setLogger($logger);
         $this->detectProcessInfo();
     }
 
@@ -108,7 +111,7 @@ class Daemon
         $this->setDaemonStatus('Connected to the database', 'info');
 
         $fail = function (Exception $e) {
-            Logger::error($e->getMessage());
+            $this->logger->error($e->getMessage());
             $this->setState('failed');
         };
         $refresh = function () {
@@ -179,7 +182,7 @@ QUERY;
     protected function setDaemonStatus($status, $logLevel = null, $sendReady = false)
     {
         if ($logLevel !== null) {
-            Logger::$logLevel($status);
+            $this->logger->$logLevel($status);
         }
         if ($this->systemd) {
             if ($sendReady) {
@@ -214,7 +217,7 @@ QUERY;
         ], 'shutdown', function () {
             $this->shutdown();
         })->onTransition(['connected', 'started'], 'failed', function () {
-            Logger::error('Failed. Will try to reconnect to the Database');
+            $this->logger->error('Failed. Will try to reconnect to the Database');
             $this->setDaemonStatus('Failed. Will try to reconnect to the Database');
             $this->eventuallyDisconnectFromDb();
         })->onTransition(['started', 'connected', 'disconnected'], 'failed', function () {
@@ -232,7 +235,7 @@ QUERY;
     {
         // There is some redundancy here to really make sure they're gone
         if (! empty($this->running)) {
-            Logger::info('Stopping remaining child processes');
+            $this->logger->info('Stopping remaining child processes');
         }
         foreach ($this->running as $serverRunner) {
             $serverRunner->stop();
@@ -250,7 +253,7 @@ QUERY;
     protected function onFailed()
     {
         $delay = $this->delayOnFailed;
-        Logger::warning("Failed. Reconnecting in ${delay}s");
+        $this->logger->warning("Failed. Reconnecting in ${delay}s");
         $this->loop->addTimer($delay, function () {
             $this->reconnectToDb();
         });
@@ -290,7 +293,7 @@ QUERY;
                     $this->setState('disconnected');
                 }
             } catch (Exception $e) {
-                Logger::error(
+                $this->logger->error(
                     'Ignored an error while closing the DB connection: '
                     . $e->getMessage()
                 );
@@ -349,10 +352,10 @@ QUERY;
                     $e->getMessage()
                 ));
             }
-            Logger::error(
+            $this->logger->error(sprintf(
                 'Failed to safely shutdown, stopping anyways: %s',
                 $e->getMessage()
-            );
+            ));
         }
         $this->loop->stop();
     }
@@ -449,7 +452,7 @@ QUERY;
 
         foreach ($required as $id => $vServer) {
             if (! isset($this->running[$id])) {
-                Logger::info("vCenter ID=$id is now starting");
+                $this->logger->info("vCenter ID=$id is now starting");
                 $this->running[$id] = $this->runServer($vServer);
             }
         }
@@ -470,10 +473,10 @@ QUERY;
      */
     protected function runServer(VCenterServer $server)
     {
-        $runner = new ServerRunner($server);
+        $runner = new ServerRunner($server, $this->logger);
         $vCenterId = $server->get('vcenter_id');
         $serverId = $server->get('id');
-        Logger::info("Starting for vCenterID=$vCenterId");
+        $this->logger->info("Starting for vCenterID=$vCenterId");
         /** @var Db $connection */
         $connection = $server->getConnection();
         $logProxy = new LogProxy($connection, $this->processInfo->instance_uuid);
@@ -482,12 +485,12 @@ QUERY;
             $this->pauseFailedRunner($vCenterId, $serverId);
         });
         $runner->on('processStopped', function ($pid) use ($vCenterId, $serverId) {
-            Logger::debug("Pid $pid stopped");
+            $this->logger->debug("Pid $pid stopped");
             $this->refreshMyState();
             try {
                 $this->refreshMyState();
             } catch (Exception $e) {
-                Logger::error($e->getMessage());
+                $this->logger->error($e->getMessage());
                 $this->eventuallyDisconnectFromDb();
             }
         });
@@ -501,7 +504,7 @@ QUERY;
     protected function pauseFailedRunner($vCenterId, $serverId, $pid = null)
     {
         if (! isset($this->running[$serverId])) {
-            Logger::error("Server for vCenterID=$vCenterId failed, there is no related runner");
+            $this->logger->error("Server for vCenterID=$vCenterId failed, there is no related runner");
             return;
         }
         if ($pid === null) {
@@ -509,7 +512,7 @@ QUERY;
         } else {
             $pidInfo = " (PID $pid)";
         }
-        Logger::error("Server for vCenterID=$vCenterId failed$pidInfo, will try again in 30 seconds");
+        $this->logger->error("Server for vCenterID=$vCenterId failed$pidInfo, will try again in 30 seconds");
         $this->running[$serverId]->stop();
         unset($this->running[$vCenterId]);
         $this->loop->addTimer(2, function () {
@@ -533,7 +536,7 @@ QUERY;
             }
         } catch (Exception $e) {
             $this->setDaemonStatus('Failed to refresh server list');
-            Logger::error($e->getMessage());
+            $this->logger->error($e->getMessage());
             $this->setState('failed');
         }
     }

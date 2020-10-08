@@ -22,7 +22,7 @@ class DaemonCommand extends CommandBase
             );
         }
 
-        $daemon = new Daemon();
+        $daemon = new Daemon($this->logger);
         $daemon->run();
     }
 }

@@ -2,8 +2,8 @@
 
 namespace Icinga\Module\Vspheredb\Daemon;
 
+use Evenement\EventEmitterTrait;
 use Exception;
-use Icinga\Application\Logger;
 use Icinga\Module\Vspheredb\DbObject\ComputeResource;
 use Icinga\Module\Vspheredb\DbObject\Datastore;
 use Icinga\Module\Vspheredb\DbObject\HostSystem;
@@ -22,14 +22,16 @@ use Icinga\Module\Vspheredb\Sync\SyncVmDatastoreUsage;
 use Icinga\Module\Vspheredb\Sync\SyncVmDiskUsage;
 use Icinga\Module\Vspheredb\Sync\SyncVmHardware;
 use Icinga\Module\Vspheredb\Sync\SyncVmSnapshots;
-use ipl\Stdlib\EventEmitter;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 use React\EventLoop\LoopInterface;
 use React\Promise\Deferred;
 use Zend_Db_Exception as ZfDbException;
 
 class SyncRunner
 {
-    use EventEmitter;
+    use EventEmitterTrait;
+    use LoggerAwareTrait;
 
     /** @var VCenter */
     protected $vCenter;
@@ -74,9 +76,11 @@ class SyncRunner
     /**
      * SyncRunner constructor.
      * @param VCenter $vCenter
+     * @param LoggerInterface $logger
      */
-    public function __construct(VCenter $vCenter)
+    public function __construct(VCenter $vCenter, LoggerInterface $logger)
     {
+        $this->setLogger($logger);
         $this->vCenter = $vCenter;
         $this->availableTasks = [
             'moRefs' => function () {
@@ -86,50 +90,50 @@ class SyncRunner
                 (new SyncQuickStats($this->vCenter))->run();
             },
             'computeResources' => function () {
-                ComputeResource::syncFromApi($this->vCenter);
+                ComputeResource::syncFromApi($this->vCenter, $this->logger);
             },
             'hostSystems' => function () {
-                HostSystem::syncFromApi($this->vCenter);
+                HostSystem::syncFromApi($this->vCenter, $this->logger);
             },
             'virtualMachines' => function () {
-                VirtualMachine::syncFromApi($this->vCenter);
+                VirtualMachine::syncFromApi($this->vCenter, $this->logger);
             },
             'storagePods' => function () {
-                StoragePod::syncFromApi($this->vCenter);
+                StoragePod::syncFromApi($this->vCenter, $this->logger);
             },
             'dataStores' => function () {
-                Datastore::syncFromApi($this->vCenter);
+                Datastore::syncFromApi($this->vCenter, $this->logger);
             },
             'hostHardware' => function () {
-                (new SyncHostHardware($this->vCenter))->run();
+                (new SyncHostHardware($this->vCenter, $this->logger))->run();
             },
             'hostSensors' => function () {
-                (new SyncHostSensors($this->vCenter))->run();
+                (new SyncHostSensors($this->vCenter, $this->logger))->run();
             },
             'hostNetwork' => function () {
-                (new SyncHostNetwork($this->vCenter))->run();
+                (new SyncHostNetwork($this->vCenter, $this->logger))->run();
             },
             'vmHardware' => function () {
-                (new SyncVmHardware($this->vCenter))->run();
+                (new SyncVmHardware($this->vCenter, $this->logger))->run();
             },
             'vmDiskUsage' => function () {
-                (new SyncVmDiskUsage($this->vCenter))->run();
+                (new SyncVmDiskUsage($this->vCenter, $this->logger))->run();
             },
             'vmDatastoreUsage' => function () {
-                (new SyncVmDatastoreUsage($this->vCenter))->run();
+                (new SyncVmDatastoreUsage($this->vCenter, $this->logger))->run();
             },
             'vmSnapshots' => function () {
-                (new SyncVmSnapshots($this->vCenter))->run();
+                (new SyncVmSnapshots($this->vCenter, $this->logger))->run();
             },
             'eventStream' => function () {
                 $this->streamEvents();
             },
             'perfCounters' => function () {
                 // Currently unused.
-                (new SyncPerfCounters($this->vCenter))->run();
+                (new SyncPerfCounters($this->vCenter, $this->logger))->run();
             },
             'perfCounterInfo' => function () {
-                (new SyncPerfCounterInfo($this->vCenter))->run();
+                (new SyncPerfCounterInfo($this->vCenter, $this->logger))->run();
             },
         ];
     }
@@ -217,9 +221,9 @@ class SyncRunner
                     $this->runNextImmediateTask();
                 });
             } catch (Exception $e) {
-                Logger::error("Task $task failed: " . $e->getMessage());
+                $this->logger->error("Task $task failed: " . $e->getMessage());
                 if ($this->showTrace) {
-                    Logger::error($e->getTraceAsString());
+                    $this->logger->error($e->getTraceAsString());
                 }
                 if ($e instanceof ZfDbException) {
                     $this->emit('dbError', [$e]);
@@ -273,7 +277,7 @@ class SyncRunner
     protected function eventManager()
     {
         if ($this->eventManager === null) {
-            $this->eventManager = $this->vCenter->getApi()->eventManager()
+            $this->eventManager = $this->vCenter->getApi($this->logger)->eventManager()
                 ->persistFor($this->vCenter);
         }
 
@@ -291,10 +295,10 @@ class SyncRunner
         $cnt = $this->eventManager()->streamToDb();
         if ($cnt < 1000) {
             if ($cnt > 0) {
-                Logger::debug('Got %d events', $cnt);
+                $this->logger->debug(sprintf('Got %d events', $cnt));
             }
         } else {
-            Logger::debug('Got %d event(s), there might be more', $cnt);
+            $this->logger->debug(sprintf('Got %d event(s), there might be more', $cnt));
         }
     }
 }

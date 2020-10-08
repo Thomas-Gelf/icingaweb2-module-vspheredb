@@ -3,7 +3,6 @@
 namespace Icinga\Module\Vspheredb;
 
 use Icinga\Exception\AuthenticationException;
-use Icinga\Exception\IcingaException;
 use RuntimeException;
 
 /**
@@ -47,7 +46,7 @@ trait LazyApiHelpers
     public function eventManager()
     {
         if ($this->eventManager === null) {
-            $this->eventManager = new EventManager($this);
+            $this->eventManager = new EventManager($this, $this->logger);
         }
 
         return $this->eventManager;
@@ -59,7 +58,7 @@ trait LazyApiHelpers
     public function perfManager()
     {
         if ($this->perfManager === null) {
-            $this->perfManager = new PerfManager($this);
+            $this->perfManager = new PerfManager($this, $this->logger);
         }
 
         return $this->perfManager;

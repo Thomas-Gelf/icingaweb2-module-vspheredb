@@ -3,18 +3,22 @@
 namespace Icinga\Module\Vspheredb\Sync;
 
 use Exception;
-use Icinga\Application\Logger;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\MappedClass\PerfCounterInfo;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 
 class SyncPerfCounterInfo
 {
+    use LoggerAwareTrait;
+
     /** @var VCenter */
     protected $vCenter;
 
-    public function __construct(VCenter $vCenter)
+    public function __construct(VCenter $vCenter, LoggerInterface $logger)
     {
         $this->vCenter = $vCenter;
+        $this->setLogger($logger);
     }
 
     /**
@@ -25,7 +29,7 @@ class SyncPerfCounterInfo
     {
         $this->processCounterInfo(
             $this->vCenter
-                ->getApi()
+                ->getApi($this->logger)
                 ->perfManager()
                 ->getPerformanceManager()
                 ->getPerfCounter()
@@ -45,7 +49,7 @@ class SyncPerfCounterInfo
         $units = [];
         $groups = [];
         $data = [];
-        Logger::debug('Preparing Counters for DB');
+        $this->logger->debug('Preparing Counters for DB');
         foreach ($infos as $info) {
             $name  = $info->nameInfo->key;
             $group = $info->groupInfo->key;
@@ -83,7 +87,7 @@ class SyncPerfCounterInfo
             $data[] = $current;
         }
 
-        Logger::debug('Ready to store Counters to DB');
+        $this->logger->debug('Ready to store Counters to DB');
         // This is not a full sync, but good enough for our needs.
         $db->beginTransaction();
         $existingGroups = $db->fetchPairs(
@@ -132,7 +136,7 @@ class SyncPerfCounterInfo
             throw $error;
         }
         if ($cnt > 0) {
-            Logger::info(sprintf('%d counter-related changes stored to DB', $cnt));
+            $this->logger->info(sprintf('%d counter-related changes stored to DB', $cnt));
         }
     }
 

@@ -4,15 +4,17 @@ namespace Icinga\Module\Vspheredb\Daemon;
 
 use Exception;
 use Evenement\EventEmitterTrait;
-use Icinga\Application\Logger;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\PerfManager;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 use React\EventLoop\LoopInterface;
 use React\Promise\Deferred;
 
 class PerfDataRunner
 {
     use EventEmitterTrait;
+    use LoggerAwareTrait;
 
     /** @var VCenter */
     protected $vCenter;
@@ -31,19 +33,20 @@ class PerfDataRunner
     protected $deferred;
 
     protected $taskNames = [
-        'test'           => 'Just playing around',
+        'test' => 'Just playing around',
     ];
 
     /**
      * SyncRunner constructor.
      * @param VCenter $vCenter
      */
-    public function __construct(VCenter $vCenter)
+    public function __construct(VCenter $vCenter, LoggerInterface $logger)
     {
+        $this->setLogger($logger);
         $this->vCenter = $vCenter;
         $this->availableTasks = [
             'test' => function () {
-                $api = $this->vCenter->getApi();
+                $api = $this->vCenter->getApi($this->logger);
             },
         ];
     }
@@ -89,7 +92,7 @@ class PerfDataRunner
                 gc_collect_cycles();
                 gc_enable();
             } catch (Exception $e) {
-                Logger::error("Task $task failed: " . $e->getMessage());
+                $this->logger->error("Task $task failed: " . $e->getMessage());
                 $this->loop->addTimer(0.5, function () {
                     $this->deferred->reject();
                 });
@@ -128,7 +131,7 @@ class PerfDataRunner
     protected function perfManager()
     {
         if ($this->perfManager === null) {
-            $this->perfManager = $this->vCenter->getApi()->perfManager()
+            $this->perfManager = $this->vCenter->getApi($this->logger)->perfManager()
                 ->persistFor($this->vCenter);
         }
 
@@ -146,10 +149,10 @@ class PerfDataRunner
         $cnt = $this->perfManager()->streamToDb();
         if ($cnt < 1000) {
             if ($cnt > 0) {
-                Logger::debug('Got %d events', $cnt);
+                $this->logger->debug(sprintf('Got %d events', $cnt));
             }
         } else {
-            Logger::debug('Got %d event(s), there might be more', $cnt);
+            $this->logger->debug(sprintf('Got %d event(s), there might be more', $cnt));
         }
     }
 }

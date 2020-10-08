@@ -3,17 +3,21 @@
 namespace Icinga\Module\Vspheredb\Sync;
 
 use Exception;
-use Icinga\Application\Logger;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 
 trait SyncHelper
 {
+    use LoggerAwareTrait;
+
     /** @var VCenter */
     protected $vCenter;
 
-    public function __construct(VCenter $vCenter)
+    public function __construct(VCenter $vCenter, LoggerInterface $logger)
     {
         $this->vCenter = $vCenter;
+        $this->setLogger($logger);
     }
 
     /**
@@ -55,6 +59,8 @@ trait SyncHelper
             }
             throw $error;
         }
-        Logger::debug("$insert created, $update changed, $delete deleted out of $cntTotal objects (API: $cntSeen)");
+        $this->logger->debug(
+            "$insert created, $update changed, $delete deleted out of $cntTotal objects (API: $cntSeen)"
+        );
     }
 }

@@ -2,10 +2,10 @@
 
 namespace Icinga\Module\Vspheredb\Sync;
 
-use Icinga\Application\Logger;
 use Icinga\Module\Vspheredb\DbObject\HostPciDevice;
 use Icinga\Module\Vspheredb\DbObject\HostSystem;
 use Icinga\Module\Vspheredb\PropertySet\PropertySet;
+use function count;
 
 class SyncHostHardware
 {
@@ -14,22 +14,22 @@ class SyncHostHardware
     public function run()
     {
         $vCenter = $this->vCenter;
-        $result = $vCenter->getApi()->propertyCollector()->collectObjectProperties(
+        $result = $vCenter->getApi($this->logger)->propertyCollector()->collectObjectProperties(
             new PropertySet('HostSystem', ['hardware.pciDevice']),
             HostSystem::getSelectSet()
         );
 
-        Logger::debug(
+        $this->logger->debug(sprintf(
             'Got %d HostSystems with hardware.pciDevice',
             count($result)
-        );
+        ));
 
         $connection = $vCenter->getConnection();
         $devices = HostPciDevice::loadAllForVCenter($vCenter);
-        Logger::debug(
+        $this->logger->debug(sprintf(
             'Got %d host_pci_device objects from DB',
             count($devices)
-        );
+        ));
 
         $seen = [];
         foreach ($result as $host) {

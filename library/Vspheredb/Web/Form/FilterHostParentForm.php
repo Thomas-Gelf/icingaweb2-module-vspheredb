@@ -71,7 +71,7 @@ class FilterHostParentForm extends Form
                 'class' => 'autosubmit',
             ]);
         }
-   }
+    }
 
     public function onSuccess()
     {

@@ -2,51 +2,33 @@
 
 namespace Icinga\Module\Vspheredb\Sync;
 
-use Icinga\Application\Logger;
-use Icinga\Exception\IcingaException;
-use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\DbObject\VirtualMachine;
 use Icinga\Module\Vspheredb\DbObject\VmDiskUsage;
-use Icinga\Module\Vspheredb\PerformanceData\InfluxDbWriter;
 use Icinga\Module\Vspheredb\PropertySet\PropertySet;
 
 class SyncVmDiskUsage
 {
     use SyncHelper;
 
-    /**
-     * @param \stdClass $device
-     * @throws IcingaException
-     */
-    protected function assertValidDeviceKey($device)
-    {
-        if (! is_int($device->key)) {
-            throw new IcingaException(
-                'Got invalid device key "%s", integer expected',
-                $device->key
-            );
-        }
-    }
-
     public function run()
     {
         $vCenter = $this->vCenter;
         $vCenterUuid = $vCenter->getUuid();
-        $result = $vCenter->getApi()->propertyCollector()->collectObjectProperties(
+        $result = $vCenter->getApi($this->logger)->propertyCollector()->collectObjectProperties(
             new PropertySet('VirtualMachine', ['guest.disk']),
             VirtualMachine::getSelectSet()
         );
-        Logger::debug(
+        $this->logger->debug(sprintf(
             'Got %d VirtualMachines with guest.disk',
             count($result)
-        );
+        ));
 
         $connection = $vCenter->getConnection();
         $usage = VmDiskUsage::loadAllForVCenter($vCenter);
-        Logger::debug(
+        $this->logger->debug(sprintf(
             'Got %d vm_disk_usage objects from DB',
             count($usage)
-        );
+        ));
 
         $seen = [];
         foreach ($result as $vm) {
@@ -118,7 +100,7 @@ class SyncVmDiskUsage
             }
         }
 
-        // Logger::debug('Ready to prepare for InfluxDB');
+        // $this->logger->debug('Ready to prepare for InfluxDB');
         // $writer = new InfluxDbWriter($this->vCenter);
         // $writer->sendVmDiskUsage($usage);
         $this->storeObjects($vCenter->getDb(), $usage, $seen);

@@ -28,7 +28,7 @@ class HostHardwareInfoTable extends NameValueTable
         $host = $this->host;
         $this->addNameValuePairs([
             $this->translate('CPU') => [
-               \sprintf(
+                \sprintf(
                     $this->translate('%d Packages, %d Cores, %d Threads'),
                     $host->get('hardware_cpu_packages'),
                     $host->get('hardware_cpu_cores'),

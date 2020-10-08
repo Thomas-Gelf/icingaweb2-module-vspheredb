@@ -6,7 +6,6 @@ use Exception;
 use gipfl\IcingaWeb2\CompatController;
 use Icinga\Module\Vspheredb\Db;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
-use ipl\Html\Html;
 
 class Controller extends CompatController
 {

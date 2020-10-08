@@ -2,8 +2,9 @@
 
 namespace Icinga\Module\Vspheredb\Sync;
 
-use Icinga\Application\Logger;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 
 /**
  * Strategy:
@@ -20,6 +21,8 @@ use Icinga\Module\Vspheredb\DbObject\VCenter;
  */
 class SyncPerfCounters
 {
+    use LoggerAwareTrait;
+
     /** @var VCenter */
     protected $vCenter;
 
@@ -28,10 +31,11 @@ class SyncPerfCounters
 
     protected $table = 'counter_300x5';
 
-    public function __construct(VCenter $vCenter)
+    public function __construct(VCenter $vCenter, LoggerInterface $logger)
     {
         $this->vCenter = $vCenter;
         $this->dba = $vCenter->getDb();
+        $this->setLogger($logger);
     }
 
     protected function listVirtualMachines()
@@ -51,7 +55,7 @@ class SyncPerfCounters
         $type = 'VirtualMachine';
 
         $vCenter = $this->vCenter;
-        $api = $vCenter->getApi();
+        $api = $vCenter->getApi($this->logger);
         $uuid = $vCenter->getUuid();
         $vms = $this->listVirtualMachines();
         $db = $this->dba;
@@ -79,7 +83,7 @@ class SyncPerfCounters
                 }
             }
             $db->commit();
-            Logger::debug("Stored $count instances");
+            $this->logger->debug("Stored $count instances");
         }
 
         $currentTs = floor(time() / 300) * 300 * 1000;
