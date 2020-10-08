@@ -62,7 +62,8 @@ Database
 HINT: You should replace `some-password` with a secure custom password.
 
     mysql -e "CREATE DATABASE vspheredb CHARACTER SET 'utf8mb4' COLLATE utf8mb4_bin;
-       GRANT ALL ON vspheredb.* TO vspheredb@localhost IDENTIFIED BY 'some-password';"
+       CREATE USER vspheredb@localhost IDENTIFIED BY 'some-password';
+       GRANT ALL ON vspheredb.* TO vspheredb@localhost;"
 
 ### Create a related Icinga Web 2 Database resource
 
