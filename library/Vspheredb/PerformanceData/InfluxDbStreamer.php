@@ -6,10 +6,8 @@ use Clue\React\Buzz\Message\ResponseException;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\MappedClass\PerfEntityMetricCSV;
 use Icinga\Module\Vspheredb\PerformanceData\InfluxDb\AsyncInfluxDbWriter;
-use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\HostNetwork;
 use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceSet;
-use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\VmDisks;
-use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\VmNetwork;
+use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceSets;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
@@ -66,15 +64,9 @@ class InfluxDbStreamer implements LoggerAwareInterface
         $this->influx = new AsyncInfluxDbWriter($baseUrl, $this->loop);
         $this->idle = false;
 
-        $sets = [
-            'HostNetwork' => HostNetwork::class,
-            'VmNetwork'   => VmNetwork::class,
-            'VmDisks'     => VmDisks::class,
-        ];
-
-        foreach ($sets as $set) {
-            $this->loop->futureTick(function () use ($set, $dbName) {
-                $this->streamSet(new $set($this->vCenter), $dbName);
+        foreach (PerformanceSets::listAvailableSets() as $class) {
+            $this->loop->futureTick(function () use ($class, $dbName) {
+                $this->streamSet(new $class($this->vCenter), $dbName);
             });
         }
     }
