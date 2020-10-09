@@ -3,6 +3,7 @@
 namespace Icinga\Module\Vspheredb\Clicommands;
 
 use Exception;
+use gipfl\Log\Filter\LogLevelFilter;
 use gipfl\Log\Logger;
 use gipfl\Log\Writer\JsonRpcWriter;
 use gipfl\Log\Writer\SystemdStdoutWriter;
@@ -85,6 +86,15 @@ class Command extends CliCommand
     protected function initializeLogger()
     {
         $this->logger = new Logger();
+        /** @noinspection PhpStatementHasEmptyBodyInspection */
+        if ($this->isDebugging) {
+            // Hint: no need to filter
+            // $this->logger->addFilter(new LogLevelFilter('debug'));
+        } elseif ($this->isVerbose) {
+            $this->logger->addFilter(new LogLevelFilter('info'));
+        } else {
+            $this->logger->addFilter(new LogLevelFilter('notice'));
+        }
         if ($this->isRpc()) {
             $this->logger->addWriter(new JsonRpcWriter($this->rpc));
         } else {

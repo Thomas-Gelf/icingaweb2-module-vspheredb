@@ -108,7 +108,7 @@ class Daemon
 
     protected function onConnected()
     {
-        $this->setDaemonStatus('Connected to the database', 'info');
+        $this->setDaemonStatus('Connected to the database', 'notice');
 
         $fail = function (Exception $e) {
             $this->logger->error($e->getMessage());
@@ -141,7 +141,7 @@ class Daemon
 
     protected function runDbCleanup()
     {
-        $this->setDaemonStatus('Running DB cleanup (this could take some time)', 'info');
+        $this->setDaemonStatus('Running DB cleanup (this could take some time)', 'notice');
         $db = $this->connection->getDbAdapter();
         // Delete all damon entries older than the two most recently running daemons
         $where = <<<WHERE
@@ -176,7 +176,7 @@ QUERY;
             );
         }
         $db->query('OPTIMIZE TABLE vspheredb_daemonlog')->execute();
-        $this->setDaemonStatus('DB has been cleaned up', 'info');
+        $this->setDaemonStatus('DB has been cleaned up', 'notice');
     }
 
     protected function setDaemonStatus($status, $logLevel = null, $sendReady = false)
@@ -227,7 +227,7 @@ QUERY;
 
         // External events:
         $this->runConfigWatch();
-        $this->setDaemonStatus('Ready to run', 'info', true);
+        $this->setDaemonStatus('Ready to run', 'notice', true);
         $this->initializeStateMachine('started');
     }
 
@@ -262,7 +262,7 @@ QUERY;
 
     protected function reconnectToDb()
     {
-        $this->setDaemonStatus('Reconnecting to DB', 'info');
+        $this->setDaemonStatus('Reconnecting to DB', 'notice');
         $this->eventuallyDisconnectFromDb();
         RetryUnless::succeeding(function () {
             if ($this->dbConfig === null) {
@@ -343,7 +343,7 @@ QUERY;
     protected function shutdown()
     {
         try {
-            $this->setDaemonStatus('Shutting down', 'info');
+            $this->setDaemonStatus('Shutting down', 'notice');
             $this->eventuallyDisconnectFromDb();
         } catch (Exception $e) {
             if ($this->systemd) {
@@ -543,7 +543,7 @@ QUERY;
                 $this->stopRunners();
             }
         } catch (Exception $e) {
-            $this->setDaemonStatus('Failed to refresh server list');
+            $this->setDaemonStatus('Failed to refresh server list', 'error');
             $this->logger->error($e->getMessage());
             $this->setState('failed');
         }

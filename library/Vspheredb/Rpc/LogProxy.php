@@ -3,6 +3,7 @@
 namespace Icinga\Module\Vspheredb\Rpc;
 
 use Exception;
+use gipfl\Log\Logger;
 use gipfl\Protocol\JsonRpc\Notification;
 use gipfl\Protocol\JsonRpc\PacketHandler;
 use Icinga\Module\Vspheredb\Db;
@@ -59,6 +60,11 @@ class LogProxy implements PacketHandler
     {
         $message = $this->prefix . $message;
         $this->logger->$severity($message);
+        if ($this->logger instanceof Logger) {
+            if (! $this->logger->wants($severity, $message)) {
+                return;
+            }
+        }
         try {
             $this->db->insert('vspheredb_daemonlog', [
                 'vcenter_uuid'  => $this->vCenterUuid ?: str_repeat("\x00", 16),

@@ -53,9 +53,9 @@ class VCenterInitialization
 
         if ($vCenter->hasBeenModified()) {
             if ($vCenter->hasBeenLoadedFromDb()) {
-                $logger->info('vCenter has been modified');
+                $logger->notice('vCenter has been modified');
             } else {
-                $logger->info('vCenter has been created');
+                $logger->notice('vCenter has been created');
             }
 
             $vCenter->store();
