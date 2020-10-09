@@ -110,16 +110,16 @@ class VmsTable extends ObjectsTable
             )->setRenderer($guestToolsStatusRenderer)->setSortExpression('vm.guest_tools_status'),
 
             $this->createColumn(
-                    'guest_tools_version',
-                    $this->translate('Tools Version'),
-                    'vm.guest_tools_version'
-                )
-                ->setRenderer($guestToolsVersionRenderer)
-                ->setSortExpression(
-                    "CAST("
-                    . "CASE WHEN guest_tools_version = '2147483647' THEN '1' ELSE guest_tools_version END"
-                    . " AS SIGNED INTEGER)"
-                ),
+                'guest_tools_version',
+                $this->translate('Tools Version'),
+                'vm.guest_tools_version'
+            )
+            ->setRenderer($guestToolsVersionRenderer)
+            ->setSortExpression(
+                "CAST("
+                . "CASE WHEN guest_tools_version = '2147483647' THEN '1' ELSE guest_tools_version END"
+                . " AS SIGNED INTEGER)"
+            ),
 
             $this->createColumn('host_name', $this->translate('Host'), 'h.host_name'),
 
