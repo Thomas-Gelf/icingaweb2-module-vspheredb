@@ -23,6 +23,7 @@ class DaemonCommand extends CommandBase
         }
 
         $daemon = new Daemon($this->logger);
-        $daemon->run();
+        $daemon->run($this->loop());
+        $this->eventuallyStartMainLoop();
     }
 }

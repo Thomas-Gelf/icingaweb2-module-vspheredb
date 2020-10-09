@@ -25,8 +25,8 @@ class SyncQuickStats
     {
         $vCenter = $this->vCenter;
         $this->logger->debug('Ready to sync QuickStats for Hosts and VMs');
-        HostQuickStats::syncFromApi($vCenter);
-        VmQuickStats::syncFromApi($vCenter);
+        HostQuickStats::syncFromApi($vCenter, $this->logger);
+        VmQuickStats::syncFromApi($vCenter, $this->logger);
 
         return $this;
     }

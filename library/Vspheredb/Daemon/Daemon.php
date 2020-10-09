@@ -473,19 +473,27 @@ QUERY;
      */
     protected function runServer(VCenterServer $server)
     {
-        $runner = new ServerRunner($server, $this->logger);
         $vCenterId = $server->get('vcenter_id');
+        if ($vCenterId) {
+            $vCenter = VCenter::loadWithAutoIncId($vCenterId, $this->connection);
+            $label = $vCenter->get('name');
+        } else {
+            $label = $server->get('host');
+        }
+        $runner = new ServerRunner($server, $this->logger);
         $serverId = $server->get('id');
-        $this->logger->info("Starting for vCenterID=$vCenterId");
+        $this->logger->info("Starting for $label");
         /** @var Db $connection */
         $connection = $server->getConnection();
-        $logProxy = new LogProxy($connection, $this->processInfo->instance_uuid);
+        $logProxy = new LogProxy($connection, $this->logger, $this->processInfo->instance_uuid);
+        $logProxy->setPrefix("[$label] ");
+        $logProxy->setServer($server);
         $runner->forwardLog($logProxy);
-        $runner->run($this->loop)->otherwise(function () use ($vCenterId, $serverId) {
-            $this->pauseFailedRunner($vCenterId, $serverId);
+        $runner->run($this->loop)->otherwise(function () use ($label, $serverId) {
+            $this->pauseFailedRunner($label, $serverId);
         });
-        $runner->on('processStopped', function ($pid) use ($vCenterId, $serverId) {
-            $this->logger->debug("Pid $pid stopped");
+        $runner->on('processStopped', function ($pid) use ($label, $serverId) {
+            $this->logger->debug("Pid $pid stopped for $label");
             $this->refreshMyState();
             try {
                 $this->refreshMyState();
@@ -494,17 +502,17 @@ QUERY;
                 $this->eventuallyDisconnectFromDb();
             }
         });
-        $runner->on('failed', function ($pid) use ($vCenterId, $serverId) {
-            $this->pauseFailedRunner($vCenterId, $serverId, $pid);
+        $runner->on('failed', function ($pid) use ($label, $serverId) {
+            $this->pauseFailedRunner($label, $serverId, $pid);
         });
 
         return $runner;
     }
 
-    protected function pauseFailedRunner($vCenterId, $serverId, $pid = null)
+    protected function pauseFailedRunner($label, $serverId, $pid = null)
     {
         if (! isset($this->running[$serverId])) {
-            $this->logger->error("Server for vCenterID=$vCenterId failed, there is no related runner");
+            $this->logger->error("Server for vCenterID=$label failed, there is no related runner");
             return;
         }
         if ($pid === null) {
@@ -512,9 +520,9 @@ QUERY;
         } else {
             $pidInfo = " (PID $pid)";
         }
-        $this->logger->error("Server for vCenterID=$vCenterId failed$pidInfo, will try again in 30 seconds");
+        $this->logger->error("Server for vCenterID=$label failed$pidInfo, will try again in 30 seconds");
         $this->running[$serverId]->stop();
-        unset($this->running[$vCenterId]);
+        unset($this->running[$serverId]);
         $this->loop->addTimer(2, function () {
             gc_collect_cycles();
         });

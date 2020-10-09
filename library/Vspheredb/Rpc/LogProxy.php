@@ -3,13 +3,19 @@
 namespace Icinga\Module\Vspheredb\Rpc;
 
 use Exception;
+use gipfl\Protocol\JsonRpc\Notification;
+use gipfl\Protocol\JsonRpc\PacketHandler;
 use Icinga\Module\Vspheredb\Db;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\DbObject\VCenterServer;
 use Icinga\Module\Vspheredb\Util;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 
-class LogProxy
+class LogProxy implements PacketHandler
 {
+    use LoggerAwareTrait;
+
     protected $connection;
 
     protected $db;
@@ -20,11 +26,21 @@ class LogProxy
 
     protected $instanceUuid;
 
-    public function __construct(Db $connection, $instanceUuid)
+    protected $prefix;
+
+    public function __construct(Db $connection, LoggerInterface $logger, $instanceUuid)
     {
+        $this->setLogger($logger);
         $this->connection = $connection;
         $this->db = $connection->getDbAdapter();
         $this->instanceUuid = $instanceUuid;
+    }
+
+    public function setPrefix($prefix)
+    {
+        $this->prefix = $prefix;
+
+        return $this;
     }
 
     public function setServer(VCenterServer $server)
@@ -41,17 +57,32 @@ class LogProxy
 
     public function log($severity, $message)
     {
-        Logger::$severity($message);
+        $message = $this->prefix . $message;
+        $this->logger->$severity($message);
         try {
             $this->db->insert('vspheredb_daemonlog', [
-                'vcenter_uuid'  => $this->vCenterUuid ?: str_repeat('0', 16),
+                'vcenter_uuid'  => $this->vCenterUuid ?: str_repeat("\x00", 16),
                 'instance_uuid' => $this->instanceUuid,
                 'ts_create'     => Util::currentTimestamp(),
                 'level'         => $severity,
                 'message'       => $message,
             ]);
         } catch (Exception $e) {
-            Logger::error($e->getMessage());
+            $this->logger->error($e->getMessage());
+        }
+    }
+
+    public function handle(Notification $notification)
+    {
+        // TODO: assert valid log level
+        switch ($notification->getMethod()) {
+            case 'logger.log':
+                $this->log(
+                    $notification->getParam('level'),
+                    $notification->getParam('message')
+                    // Also: timestamp, context
+                );
+                break;
         }
     }
 }
