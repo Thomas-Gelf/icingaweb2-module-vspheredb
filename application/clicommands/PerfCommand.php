@@ -7,7 +7,7 @@ use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\PerformanceData\InfluxDbStreamer;
 use React\EventLoop\LoopInterface;
 
-class PerfCommand extends CommandBase
+class PerfCommand extends Command
 {
     public function hostAction()
     {

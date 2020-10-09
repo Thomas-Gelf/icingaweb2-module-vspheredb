@@ -15,7 +15,7 @@ use Icinga\Module\Vspheredb\Sync\VCenterInitialization;
 /**
  * Sync a vCenter or ESXi host
  */
-class TaskCommand extends CommandBase
+class TaskCommand extends Command
 {
     /**
      * Connect to a vCenter, create/update it's base definition

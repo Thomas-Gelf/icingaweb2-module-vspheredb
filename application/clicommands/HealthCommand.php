@@ -5,7 +5,7 @@ namespace Icinga\Module\Vspheredb\Clicommands;
 /**
  * Health information for a vCenter or ESXi host
  */
-class HealthCommand extends CommandBase
+class HealthCommand extends Command
 {
     public function checkAction()
     {

@@ -17,7 +17,7 @@ use Icinga\Module\Vspheredb\DbObject\VmQuickStats;
 /**
  * vSphereDB Check Command
  */
-class CheckCommand extends CommandBase
+class CheckCommand extends Command
 {
     use CheckPluginHelper;
 

@@ -9,8 +9,7 @@ use gipfl\Log\Writer\SystemdStdoutWriter;
 use gipfl\Log\Writer\WritableStreamWriter;
 use gipfl\Protocol\JsonRpc\Connection;
 use gipfl\Protocol\NetString\StreamWrapper;
-use Icinga\Application\Cli;
-use Icinga\Cli\Command;
+use Icinga\Application\Cli as CliCommand;
 use Icinga\Module\Vspheredb\CliUtil;
 use Icinga\Module\Vspheredb\Db;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
@@ -19,7 +18,7 @@ use React\EventLoop\LoopInterface;
 use React\Stream\ReadableResourceStream;
 use React\Stream\WritableResourceStream;
 
-class CommandBase extends Command
+class Command extends CliCommand
 {
     /** @var VCenter */
     private $vCenter;

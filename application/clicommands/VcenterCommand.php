@@ -2,7 +2,7 @@
 
 namespace Icinga\Module\Vspheredb\Clicommands;
 
-class VcenterCommand extends CommandBase
+class VcenterCommand extends Command
 {
     /**
      * Deprecated

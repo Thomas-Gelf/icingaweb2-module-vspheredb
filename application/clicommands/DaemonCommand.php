@@ -4,7 +4,7 @@ namespace Icinga\Module\Vspheredb\Clicommands;
 
 use Icinga\Module\Vspheredb\Daemon\Daemon;
 
-class DaemonCommand extends CommandBase
+class DaemonCommand extends Command
 {
     /**
      * vSphereDB background daemon
