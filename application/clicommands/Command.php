@@ -12,6 +12,8 @@ use gipfl\Protocol\JsonRpc\Connection;
 use gipfl\Protocol\NetString\StreamWrapper;
 use Icinga\Cli\Command as CliCommand;
 use Icinga\Module\Vspheredb\CliUtil;
+use Icinga\Module\Vspheredb\Daemon\IcingaLogger;
+use Icinga\Module\Vspheredb\Daemon\LoggerLogWriter;
 use Icinga\Module\Vspheredb\Db;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use React\EventLoop\Factory as Loop;
@@ -85,26 +87,27 @@ class Command extends CliCommand
 
     protected function initializeLogger()
     {
-        $this->logger = new Logger();
+        $this->logger = $logger = new Logger();
         /** @noinspection PhpStatementHasEmptyBodyInspection */
         if ($this->isDebugging) {
             // Hint: no need to filter
             // $this->logger->addFilter(new LogLevelFilter('debug'));
         } elseif ($this->isVerbose) {
-            $this->logger->addFilter(new LogLevelFilter('info'));
+            $logger->addFilter(new LogLevelFilter('info'));
         } else {
-            $this->logger->addFilter(new LogLevelFilter('notice'));
+            $logger->addFilter(new LogLevelFilter('notice'));
         }
         if ($this->isRpc()) {
-            $this->logger->addWriter(new JsonRpcWriter($this->rpc));
+            $logger->addWriter(new JsonRpcWriter($this->rpc));
         } else {
             $loop = $this->loop();
             if (isset($_SERVER['NOTIFY_SOCKET'])) {
-                $this->logger->addWriter(new SystemdStdoutWriter($loop));
+                $logger->addWriter(new SystemdStdoutWriter($loop));
             } else {
-                $this->logger->addWriter(new WritableStreamWriter(new WritableResourceStream(STDERR, $loop)));
+                $logger->addWriter(new WritableStreamWriter(new WritableResourceStream(STDERR, $loop)));
             }
         }
+        IcingaLogger::replaceRunningInstance(new LoggerLogWriter($logger));
     }
 
     protected function isRpc()

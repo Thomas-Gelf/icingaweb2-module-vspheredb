@@ -3,6 +3,7 @@
 namespace Icinga\Module\Vspheredb\Daemon;
 
 use Exception;
+use gipfl\Log\Logger;
 use gipfl\SystemD\NotifySystemD;
 use gipfl\IcingaCliDaemon\RetryUnless;
 use Icinga\Application\Platform;
@@ -15,15 +16,13 @@ use Icinga\Module\Vspheredb\DbObject\VCenterServer;
 use Icinga\Module\Vspheredb\LinuxUtils;
 use Icinga\Module\Vspheredb\Rpc\LogProxy;
 use Icinga\Module\Vspheredb\Util;
-use Psr\Log\LoggerAwareTrait;
-use Psr\Log\LoggerInterface;
+use Ramsey\Uuid\Uuid;
 use React\EventLoop\Factory as Loop;
 use React\EventLoop\LoopInterface;
 use RuntimeException;
 
 class Daemon
 {
-    use LoggerAwareTrait;
     use StateMachine;
 
     /** @var LoopInterface */
@@ -51,16 +50,30 @@ class Daemon
 
     protected $lastCliTitle;
 
-    public function __construct(LoggerInterface $logger)
+    /** @var Logger */
+    protected $logger;
+
+    /** @var DbLogger */
+    protected $dbLogger;
+
+    public function __construct(Logger $logger)
     {
-        $this->setLogger($logger);
+        $this->logger = $logger;
         $this->detectProcessInfo();
+        $this->dbLogger = new DbLogger(
+            $this->processInfo->instance_uuid,
+            $this->processInfo->fqdn,
+            $this->processInfo->pid
+        );
+        $this->dbLogger->setLogger($logger);
+        $logger->addWriter($this->dbLogger);
     }
 
     protected function detectProcessInfo()
     {
         $this->processInfo = (object) [
-            'instance_uuid' => Util::generateUuid(),
+            'instance_uuid' => Uuid::uuid4()->getBytes(),
+            // 'ts_startup'      => Util::currentTimestamp(),
             'pid'           => posix_getpid(),
             'fqdn'          => Platform::getFqdn(),
             'username'      => Platform::getPhpUser(),
@@ -181,7 +194,7 @@ QUERY;
 
     protected function setDaemonStatus($status, $logLevel = null, $sendReady = false)
     {
-        if ($logLevel !== null) {
+        if ($this->logger && $logLevel !== null) {
             $this->logger->$logLevel($status);
         }
         if ($this->systemd) {
@@ -280,6 +293,7 @@ QUERY;
     {
         $connection = new Db(new ConfigObject($config));
         $connection->getDbAdapter()->getConnection();
+        $this->dbLogger->setDb($connection);
 
         return $connection;
     }
@@ -299,6 +313,7 @@ QUERY;
                 );
             }
             $this->connection = null;
+            $this->dbLogger->setDb(null);
         }
     }
 
@@ -360,23 +375,25 @@ QUERY;
         $this->loop->stop();
     }
 
-    /**
-     * @throws \Zend_Db_Adapter_Exception
-     */
     protected function refreshMyState()
     {
         if ($this->connection === null) {
             return;
         }
-        $db = $this->connection->getDbAdapter();
-        $updated = $db->update('vspheredb_daemon', [
-            'instance_uuid' => $this->processInfo->instance_uuid,
-            'ts_last_refresh' => Util::currentTimestamp(),
-            'process_info'    => json_encode($this->getProcessInfo()),
-        ], $db->quoteInto('instance_uuid = ?', $this->processInfo->instance_uuid));
+        try {
+            $db = $this->connection->getDbAdapter();
+            $updated = $db->update('vspheredb_daemon', [
+                'instance_uuid' => $this->processInfo->instance_uuid,
+                'ts_last_refresh' => Util::currentTimestamp(),
+                'process_info' => json_encode($this->getProcessInfo()),
+            ], $db->quoteInto('instance_uuid = ?', $this->processInfo->instance_uuid));
 
-        if (! $updated) {
-            $this->insertMyState($db);
+            if (!$updated) {
+                $this->insertMyState($db);
+            }
+        } catch (Exception $e) {
+            $this->logger->error($e->getMessage());
+            $this->eventuallyDisconnectFromDb();
         }
     }
 
@@ -478,6 +495,7 @@ QUERY;
             $vCenter = VCenter::loadWithAutoIncId($vCenterId, $this->connection);
             $label = $vCenter->get('name');
         } else {
+            $vCenter = null;
             $label = $server->get('host');
         }
         $runner = new ServerRunner($server, $this->logger);
@@ -485,8 +503,11 @@ QUERY;
         $this->logger->info("Starting for $label");
         /** @var Db $connection */
         $connection = $server->getConnection();
-        $logProxy = new LogProxy($connection, $this->logger, $this->processInfo->instance_uuid);
+        $logProxy = new LogProxy($connection, $this->logger);
         $logProxy->setPrefix("[$label] ");
+        if ($vCenter) {
+            $logProxy->setVCenter($vCenter);
+        }
         $logProxy->setServer($server);
         $runner->forwardLog($logProxy);
         $runner->run($this->loop)->otherwise(function () use ($label, $serverId) {
@@ -495,12 +516,6 @@ QUERY;
         $runner->on('processStopped', function ($pid) use ($label, $serverId) {
             $this->logger->debug("Pid $pid stopped for $label");
             $this->refreshMyState();
-            try {
-                $this->refreshMyState();
-            } catch (Exception $e) {
-                $this->logger->error($e->getMessage());
-                $this->eventuallyDisconnectFromDb();
-            }
         });
         $runner->on('failed', function ($pid) use ($label, $serverId) {
             $this->pauseFailedRunner($label, $serverId, $pid);

@@ -36,18 +36,6 @@ class Util
         return (int) (1000 * $time->format('U.u'));
     }
 
-    /**
-     * This it temporary BS. Good enough for our use-case, but BS.
-     *
-     * TODO: use real UUIDs
-     *
-     * @return string
-     */
-    public static function generateUuid()
-    {
-        return md5(rand(1, 10000000) . time(), true);
-    }
-
     public static function uuidToBin($uuid)
     {
         // 401daca3-42cf-bd89-94a1-463e448ea8d1
