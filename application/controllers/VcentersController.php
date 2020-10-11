@@ -11,6 +11,7 @@ use Icinga\Module\Vspheredb\Web\Tabs\MainTabs;
 use Icinga\Module\Vspheredb\Web\Widget\AdditionalTableActions;
 use Icinga\Module\Vspheredb\Web\Widget\Config\ProposeMigrations;
 use Icinga\Module\Vspheredb\Web\Widget\CpuAbsoluteUsage;
+use Icinga\Module\Vspheredb\WebUtil;
 use ipl\Html\Html;
 
 class VcentersController extends ObjectsController
@@ -20,16 +21,11 @@ class VcentersController extends ObjectsController
      */
     public function indexAction()
     {
-        $migrations = new ProposeMigrations($this->db(), $this->Auth(), $this->getServerRequest());
-        if ($migrations->hasAppliedMigrations()) {
-            $this->redirectNow($this->url());
-        }
-        $this->content()->add($migrations);
         $this->setAutorefreshInterval(15);
         $this->addSingleTab($this->translate('VCenters'));
         $this->handleTabs();
-
-        $this->setAutorefreshInterval(15);
+        $this->checkDaemonStatus();
+        $this->checkForMigrations();
         $table = new VCenterSummaryTable($this->db(), $this->url());
         /*
         $this->actions()->add(Link::create(
@@ -97,5 +93,38 @@ class VcentersController extends ObjectsController
         } else {
             $this->redirectNow('vspheredb/configuration');
         }
+    }
+
+    protected function checkDaemonStatus()
+    {
+        $db = $this->db()->getDbAdapter();
+        $daemon = $db->fetchRow(
+            $db->select()
+                ->from('vspheredb_daemon')
+                ->order('ts_last_refresh DESC')
+                ->limit(1)
+        );
+
+        if ($daemon) {
+            if ($daemon->ts_last_refresh / 1000 < time() - 10) {
+                $info = Hint::error(Html::sprintf(
+                    "Daemon keep-alive is outdated, last refresh was %s",
+                    WebUtil::timeAgo($daemon->ts_last_refresh / 1000)
+                ));
+                $this->content()->add($info);
+            }
+        } else {
+            $info = Hint::error($this->translate('Daemon is not running'));
+            $this->content()->add($info);
+        }
+    }
+
+    protected function checkForMigrations()
+    {
+        $migrations = new ProposeMigrations($this->db(), $this->Auth(), $this->getServerRequest());
+        if ($migrations->hasAppliedMigrations()) {
+            $this->redirectNow($this->url());
+        }
+        $this->content()->add($migrations);
     }
 }

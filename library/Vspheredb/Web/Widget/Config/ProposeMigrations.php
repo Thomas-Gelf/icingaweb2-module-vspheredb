@@ -77,9 +77,30 @@ class ProposeMigrations extends HtmlDocument
         try {
             if ($this->auth->hasPermission($this->requiredPermission)) {
                 $this->showMigrations($this->db);
+            } else {
+                $this->showEventualProblems($this->db);
             }
         } catch (Exception $e) {
             $this->add(Hint::error($e->getMessage()));
+        }
+    }
+
+    protected function showEventualProblems(Db $db)
+    {
+        $migrations = new Migrations($db);
+
+        if ($migrations->hasSchema()) {
+            if ($migrations->hasPendingMigrations()) {
+                $this->add(Hint::warning($this->translate(
+                    'There are pending Database Schema Migrations. Please ask'
+                    . ' an Administrator to apply them now!'
+                )));
+            }
+        } else {
+            $this->add(Hint::error($this->translate(
+                "The configured DB doesn't have the required has schema. Please"
+                . " ask an Administrator to fix the configuration."
+            )));
         }
     }
 
@@ -89,10 +110,10 @@ class ProposeMigrations extends HtmlDocument
 
         if ($migrations->hasSchema()) {
             if ($migrations->hasPendingMigrations()) {
-                Hint::warning($this->translate(
+                $this->add(Hint::warning($this->translate(
                     'There are pending Database Schema Migrations. Please apply'
                     . ' them now!'
-                ));
+                )));
                 $this->addForm($migrations);
             }
         } else {
@@ -115,11 +136,6 @@ class ProposeMigrations extends HtmlDocument
                 $this->addForm($migrations);
             }
         }
-    }
-
-    protected function addHint($class, $text)
-    {
-        $this->add(Html::tag('p', ['class' => $class], $text));
     }
 
     protected function addForm(Migrations $migrations)
