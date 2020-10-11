@@ -68,6 +68,14 @@ class VCenterServerForm extends Form
         ]);
 
         $ssl = $this->getValue('scheme', 'https') === 'https';
+        $this->addElement('boolean', 'enabled', [
+            'label'       => $this->translate('Enabled'),
+            'description' => $this->translate(
+                'Whether the background daemon should actively poll this node.'
+            ),
+            'required'    => true,
+            'value'       => 'y',
+        ]);
 
         if ($ssl) {
             $this->addElement('boolean', 'ssl_verify_peer', [
@@ -181,7 +189,6 @@ class VCenterServerForm extends Form
     public function getValues()
     {
         $values = parent::getValues();
-        $values['enabled'] = 'y';
         if (! $this->isNew()) {
             if ($values['password'] === self::UNCHANGED_PASSWORD) {
                 unset($values['password']);

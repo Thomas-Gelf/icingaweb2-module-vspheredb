@@ -447,6 +447,9 @@ QUERY;
             if (isset($this->blackListed[$id])) {
                 continue;
             }
+            if ($server->get('enabled') !== 'y') {
+                continue;
+            }
             $vCenterId = $server->get('vcenter_id');
             if ($vCenterId === null) {
                 $required[$id] = $server;
