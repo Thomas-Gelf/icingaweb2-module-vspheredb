@@ -1068,7 +1068,7 @@ pre.logOutput {
     font-weight: bold;
   }
 
-  .error {
+  .error, .critical, .emergency {
     color: @color-critical;
   }
 
@@ -1076,12 +1076,8 @@ pre.logOutput {
     color: @color-warning;
   }
 
-  .info {
+  .info, .notice {
     color: @color-ok;
-  }
-
-  .notice {
-    // color: @color-ok;
   }
 
   .debug {
