@@ -136,13 +136,13 @@ class VcenterController extends Controller
                 $msg = $this->translate('No action taken, object has not been modified');
             }
             Notification::success($msg);
-            $this->redirectNow('vspheredb/vcenter/servers');
+            $this->redirectNow('vspheredb/configuration/servers');
         });
         $form->handleRequest($this->getServerRequest());
         $this->content()->add($form);
         if ($form->hasBeenDeleted()) {
             Notification::success($this->translate('The connection has been deleted'));
-            $this->redirectNow('vspheredb/vcenter/servers');
+            $this->redirectNow('vspheredb/configuration/servers');
         }
     }
 
