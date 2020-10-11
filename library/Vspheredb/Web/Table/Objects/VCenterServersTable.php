@@ -12,10 +12,11 @@ class VCenterServersTable extends BaseTable
     {
         $this->addAvailableColumns([
             (new SimpleColumn('server', $this->translate('Server'), [
-                'scheme' => 'vcs.scheme',
+                'id'       => 'vcs.id',
+                'host'     => 'vcs.host',
                 'username' => 'vcs.username',
-                'host' => 'vcs.host',
-                'id' => 'vcs.id',
+                'scheme'   => 'vcs.scheme',
+                'enabled'  => 'vcs.enabled',
             ]))->setRenderer(function ($row) {
                 return Link::create(
                     $this->makeUrl($row),
@@ -25,6 +26,16 @@ class VCenterServersTable extends BaseTable
             })->setDefaultSortDirection('DESC'),
             (new SimpleColumn('vcenter', $this->translate('VCenter'), 'vc.name')),
         ]);
+    }
+
+    public function renderRow($row)
+    {
+        $tr = parent::renderRow($row);
+        if ($row->enabled === 'n') {
+            $tr->getAttributes()->add('class', 'disabled');
+        }
+
+        return $tr;
     }
 
     protected function makeUrl($row)
