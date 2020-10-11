@@ -29,7 +29,6 @@ class VCenterForm extends Form
 
     public function assemble()
     {
-        $this->prepareWebForm();
         $this->addElement('text', 'name', [
             'label'       => $this->translate('Name'),
             'description' => $this->translate(

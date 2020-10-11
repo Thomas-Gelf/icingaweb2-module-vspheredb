@@ -22,7 +22,6 @@ class ApplyMigrationsForm extends Form
 
     public function assemble()
     {
-        $this->prepareWebForm();
         if ($this->migrations->hasSchema()) {
             $count = $this->migrations->countPendingMigrations();
             if ($count === 1) {

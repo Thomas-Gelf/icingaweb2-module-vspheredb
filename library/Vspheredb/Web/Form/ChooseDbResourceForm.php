@@ -28,7 +28,6 @@ class ChooseDbResourceForm extends Form
 
     protected function assemble()
     {
-        $this->prepareWebForm();
         $this->storeConfigLabel = $this->translate('Store configuration');
 
         $this->addResourceConfigElements();

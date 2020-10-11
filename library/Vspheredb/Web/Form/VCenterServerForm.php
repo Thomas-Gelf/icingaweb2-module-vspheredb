@@ -31,7 +31,6 @@ class VCenterServerForm extends Form
 
     public function assemble()
     {
-        $this->prepareWebForm();
         if (! class_exists('SoapClient')) {
             $this->addMessage($this->translate(
                 'The PHP SOAP extension (php-soap) is not installed/enabled'
