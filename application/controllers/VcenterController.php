@@ -26,12 +26,14 @@ class VcenterController extends Controller
         $vCenter = $this->requireVCenter();
         $this->tabs(new VCenterTabs($vCenter))->activate('vcenter');
         $this->controls()->add(new VCenterHeader($vCenter));
-        $this->actions()->add(Link::create(
-            $this->translate('Edit'),
-            'vspheredb/vcenter/edit',
-            ['vcenter' => $this->params->get('vcenter')],
-            ['class' => 'icon-edit']
-        ));
+        if ($this->hasPermission('vspheredb/admin')) {
+            $this->actions()->add(Link::create(
+                $this->translate('Edit'),
+                'vspheredb/vcenter/edit',
+                ['vcenter' => $this->params->get('vcenter')],
+                ['class' => 'icon-edit']
+            ));
+        }
         $this->setAutorefreshInterval(10);
         // $this->content()->add(new VCenterSyncInfo($vCenter));
         $perf = $this->perf();
@@ -49,6 +51,7 @@ class VcenterController extends Controller
 
     public function editAction()
     {
+        $this->assertPermission('vspheredb/admin');
         $vCenter = $this->requireVCenter();
         $this->tabs(new VCenterTabs($vCenter))->activate('vcenter');
         $this->setAutorefreshInterval(10);

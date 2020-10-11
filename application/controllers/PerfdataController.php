@@ -11,15 +11,6 @@ use ipl\Html\Html;
 
 class PerfdataController extends Controller
 {
-    /**
-     * @throws \Icinga\Security\SecurityException
-     */
-    public function init()
-    {
-        parent::init();
-        $this->assertPermission('vspheredb/admin');
-    }
-
     public function countersAction()
     {
         $vCenter = $this->requireVCenter();
