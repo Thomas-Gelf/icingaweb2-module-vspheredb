@@ -3,9 +3,9 @@
 namespace Icinga\Module\Vspheredb\Web\Widget;
 
 use gipfl\Translation\TranslationHelper;
-use Icinga\Date\DateFormatter;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\Sync\VcenterSyncState;
+use Icinga\Module\Vspheredb\WebUtil;
 use ipl\Html\BaseHtmlElement;
 use ipl\Html\Html;
 
@@ -43,13 +43,13 @@ class VCenterSyncInfo extends BaseHtmlElement
                 (int) $syncInfo->pid,
                 $syncInfo->username,
                 $syncInfo->fqdn,
-                $this->timeAgo($syncInfo->ts_last_refresh / 1000)
+                WebUtil::timeAgo($syncInfo->ts_last_refresh / 1000)
             ));
         } elseif ($syncInfo) {
             $this->getAttributes()->add('class', 'red');
             $this->add(Html::sprintf(
                 $this->translate('Sync is not running. Last refresh occured %s by %s on %s'),
-                $this->timeAgo($syncInfo->ts_last_refresh / 1000),
+                WebUtil::timeAgo($syncInfo->ts_last_refresh / 1000),
                 $syncInfo->username,
                 $syncInfo->fqdn
             ));
@@ -74,13 +74,5 @@ class VCenterSyncInfo extends BaseHtmlElement
     protected function healthDiv($state, $content = null)
     {
         return Html::tag('div', ['class' => ['health', $state]], $content);
-    }
-
-    protected function timeAgo($time)
-    {
-        return Html::tag('span', [
-            'class' => 'time-ago',
-            'title' => DateFormatter::formatDateTime($time)
-        ], DateFormatter::timeAgo($time));
     }
 }

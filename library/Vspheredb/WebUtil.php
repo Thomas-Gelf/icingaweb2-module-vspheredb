@@ -2,9 +2,11 @@
 
 namespace Icinga\Module\Vspheredb;
 
+use Icinga\Date\DateFormatter;
 use ipl\Html\Error as HtmlError;
+use ipl\Html\Html;
 use ipl\Html\HtmlDocument;
-use Error;
+use Throwable;
 use Exception;
 
 class WebUtil
@@ -15,8 +17,16 @@ class WebUtil
             $callback();
         } catch (Exception $e) {
             $parent->add(HtmlError::show($e));
-        } catch (Error $e) {
+        } catch (Throwable $e) {
             $parent->add(HtmlError::show($e));
         }
+    }
+
+    public static function timeAgo($time)
+    {
+        return Html::tag('span', [
+            'class' => 'time-ago',
+            'title' => DateFormatter::formatDateTime($time)
+        ], DateFormatter::timeAgo($time));
     }
 }

@@ -8,6 +8,7 @@ use Icinga\Date\DateFormatter;
 use Icinga\Module\Vspheredb\Format;
 use Icinga\Module\Vspheredb\Web\Controller;
 use Icinga\Module\Vspheredb\Web\Tabs\MainTabs;
+use Icinga\Module\Vspheredb\WebUtil;
 use ipl\Html\Html;
 use ipl\Html\Table;
 
@@ -15,7 +16,8 @@ class DaemonController extends Controller
 {
     public function indexAction()
     {
-        // $this->setAutorefreshInterval(1);
+        $this->assertPermission('vspheredb/admin');
+        $this->setAutorefreshInterval(3);
         $this->addTitle($this->translate('vSphereDB Daemon Status'));
         $this->handleTabs();
         $db = $this->db()->getDbAdapter();
@@ -50,7 +52,7 @@ class DaemonController extends Controller
             if ($daemon->ts_last_refresh / 1000 < time() - 10) {
                 $info = Hint::error(Html::sprintf(
                     "Daemon keep-alive is outdated, last refresh was %s",
-                    $this->timeAgo($daemon->ts_last_refresh / 1000)
+                    WebUtil::timeAgo($daemon->ts_last_refresh / 1000)
                 ));
             } else {
                 $processes = json_decode($daemon->process_info);
@@ -72,14 +74,6 @@ class DaemonController extends Controller
             $info = Hint::error($this->translate('Daemon is not running'));
         }
         $this->content()->add([$info, $logWindow]);
-    }
-
-    protected function timeAgo($time)
-    {
-        return Html::tag('span', [
-            'class' => 'time-ago',
-            'title' => DateFormatter::formatDateTime($time)
-        ], DateFormatter::timeAgo($time));
     }
 
     protected function handleTabs()
