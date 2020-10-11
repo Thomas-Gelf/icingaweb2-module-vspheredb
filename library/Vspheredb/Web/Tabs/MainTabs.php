@@ -38,6 +38,7 @@ class MainTabs extends Tabs
                 $connection = null;
             }
         }
+        $isAdmin = $this->auth->hasPermission('vspheredb/admin');
 
         if ($connection) {
             $migrations = new Migrations($connection);
@@ -52,7 +53,7 @@ class MainTabs extends Tabs
             $migrations = null;
         }
 
-        if ($migrations && $migrations->hasSchema()) {
+        if ($isAdmin && $migrations && $migrations->hasSchema()) {
             $this->add('daemon', [
                 'label' => $this->translate('Daemon'),
                 'url' => 'vspheredb/daemon',
