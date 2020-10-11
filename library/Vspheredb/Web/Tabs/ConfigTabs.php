@@ -25,46 +25,35 @@ class ConfigTabs extends Tabs
     protected function assemble()
     {
         if ($this->connection) {
-            $connection = $this->connection;
+            $migrations = new Migrations($this->connection);
         } else {
             try {
-                $connection = Db::newConfiguredInstance();
+                $migrations = new Migrations(Db::newConfiguredInstance());
             } catch (Exception $e) {
-                $connection = null;
+                $migrations = null;
             }
         }
 
-        $this->add('configuration', [
-            'label' => $this->translate('Configuration'),
-            'url'   => 'vspheredb/configuration',
-        ]);
-
-        if ($connection) {
-            $migrations = new Migrations($connection);
-
-            if (! $migrations->hasSchema()) {
-                return;
-            }
-        } else {
-            $migrations = null;
-            return;
-        }
-
-        $this->add('servers', [
-            'label' => $this->translate('Servers'),
-            'url' => 'vspheredb/configuration/servers',
-        ]);
-        $this->add('perfdata', [
-            'label' => $this->translate('Performance Data'),
-            'url'   => 'vspheredb/configuration/perfdata',
-        ]);
-
-        // Disable Tab unless #160 is ready
         if ($migrations && $migrations->hasSchema()) {
+            $this->add('servers', [
+                'label' => $this->translate('Servers'),
+                'url' => 'vspheredb/configuration/servers',
+            ]);
+            $this->add('perfdata', [
+                'label' => $this->translate('Performance Data'),
+                'url'   => 'vspheredb/configuration/perfdata',
+            ]);
+
+            // Disable Tab unless #160 is ready
             $this->add('monitoring', [
                 'label' => $this->translate('Monitoring'),
                 'url' => 'vspheredb/configuration/monitoring',
             ]);
         }
+
+        $this->add('database', [
+            'label' => $this->translate('Database'),
+            'url'   => 'vspheredb/configuration/database',
+        ]);
     }
 }

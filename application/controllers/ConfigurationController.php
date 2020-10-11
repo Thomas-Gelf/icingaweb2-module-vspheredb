@@ -12,7 +12,6 @@ use Icinga\Module\Vspheredb\Web\Table\MonitoredObjectMappingTable;
 use Icinga\Module\Vspheredb\Web\Table\Objects\VCenterServersTable;
 use Icinga\Module\Vspheredb\Web\Tabs\ConfigTabs;
 use Icinga\Module\Vspheredb\Web\Controller;
-use Icinga\Module\Vspheredb\Web\Tabs\VCenterTabs;
 use Icinga\Module\Vspheredb\Web\Widget\Config\ProposeMigrations;
 use Icinga\Web\Notification;
 use ipl\Html\Html;
@@ -25,10 +24,10 @@ class ConfigurationController extends Controller
         parent::init();
     }
 
-    public function indexAction()
+    public function databaseAction()
     {
-        $this->addTitle($this->translate('Main Configuration'));
-        $this->tabs(new ConfigTabs())->activate('configuration');
+        $this->addTitle($this->translate('vSphereDB Database Configuration'));
+        $this->tabs(new ConfigTabs())->activate('database');
         $form = new ChooseDbResourceForm();
         $form->handleRequest($this->getServerRequest());
         $this->content()->add($form);

@@ -27,7 +27,7 @@ $section->add(N_('History'))
     ->setUrl('vspheredb/events/heatmap')
     ->setPriority(49);
 $section->add(N_('Configuration'))
-    ->setUrl('vspheredb/configuration')
+    ->setUrl('vspheredb/configuration/servers')
     ->setPermission('vspheredb/admin')
     ->setPriority(51);
 // $section->add(N_('Performance Counter'))

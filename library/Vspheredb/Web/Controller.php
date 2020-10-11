@@ -47,8 +47,10 @@ class Controller extends CompatController
 
     protected function redirectToConfiguration()
     {
-        if ($this->getRequest()->getControllerName() !== 'configuration') {
-            $this->redirectNow('vspheredb/configuration');
+        if ($this->getRequest()->getControllerName() !== 'configuration'
+            || $this->getRequest()->getActionName() !== 'database'
+        ) {
+            $this->redirectNow('vspheredb/configuration/database');
         }
     }
 }
