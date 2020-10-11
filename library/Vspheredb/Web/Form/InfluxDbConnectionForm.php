@@ -181,6 +181,9 @@ class InfluxDbConnectionForm extends Form
 
     protected function appendVersionInformation($apiVersion, $detectedVersion)
     {
+        if (empty($apiVersion) || empty($detectedVersion)) {
+            return;
+        }
         $element = $this->getElement('api_version');
         assert($element instanceof SelectElement);
         $autoOption = $element->getOption(null);
@@ -219,7 +222,7 @@ class InfluxDbConnectionForm extends Form
     protected function detectInfluxDbVersion($baseUrl)
     {
         try {
-            $promise = InfluxDbConnectionFactory::create($baseUrl, $this->loop())
+            $promise = InfluxDbConnectionFactory::create($this->loop(), $baseUrl)
                 ->then(function ($connection) {
                     return $connection->getVersion();
                 });
