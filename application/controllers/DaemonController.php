@@ -27,13 +27,11 @@ class DaemonController extends Controller
                 ->order('ts_last_refresh DESC')
                 ->limit(1)
         );
-        $lineCount = 2000;
-        $logLines = $db->fetchAll($db->select()->from([
-            'l' => $db->select()
-                ->from('vspheredb_daemonlog')
-                ->order('ts_create DESC')
-                ->limit($lineCount)
-        ])->order('ts_create ASC')->limit($lineCount));
+        $lineCount = 1000;
+        $logLines = $db->fetchAll($db->select()
+            ->from('vspheredb_daemonlog')
+            ->order('ts_create DESC')
+            ->limit($lineCount));
         $log = Html::tag('pre', ['class' => 'logOutput']);
         $logWindow = Html::tag('div', ['class' => 'logWindow'], $log);
         foreach ($logLines as $line) {
