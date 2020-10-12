@@ -2,6 +2,7 @@
 
 namespace Icinga\Module\Vspheredb\Web\Form;
 
+use Exception;
 use gipfl\Translation\TranslationHelper;
 use gipfl\Web\Form;
 use gipfl\Web\Form\Element\TextWithActionButton;
@@ -99,7 +100,11 @@ class InfluxDbConnectionForm extends Form
                     $this->getValue('token')
                 );
             default:
-                return null;
+                try {
+                    return await(InfluxDbConnectionFactory::create($this->loop(), $baseUrl), $this->loop(), 5);
+                } catch (Exception $e) {
+                    return null;
+                }
         }
     }
 
@@ -116,7 +121,15 @@ class InfluxDbConnectionForm extends Form
     {
         try {
             $influxDb = $this->getInfluxDb();
-            $this->dbList = $this->fetchDbList($influxDb);
+            if (! $influxDb) {
+                return;
+            }
+            $this->dbList = \array_filter(
+                await($influxDb->listDatabases(), $this->loop(), 5),
+                function ($value) {
+                    return $value[0] !== '_';
+                }
+            );
         } catch (\Exception $e) {
             // Hint: we no longer refresh if it's false
             $this->dbList = false;
@@ -250,7 +263,7 @@ class InfluxDbConnectionForm extends Form
     {
         $name = $element->getValue();
         try {
-            await($this->influxDb()->createDatabase($name), $this->loop());
+            await($this->getInfluxDb()->createDatabase($name), $this->loop());
             $this->remove($action->getButton());
             $this->remove($action->getElement());
             $list = $this->getDbList();
@@ -268,7 +281,7 @@ class InfluxDbConnectionForm extends Form
                 );
             }
         } catch (\Exception $e) {
-            $this->triggerElementError($element, $e->getMessage());
+            $element->addMessage($e->getMessage());
         }
     }
 
@@ -277,20 +290,6 @@ class InfluxDbConnectionForm extends Form
         return [null => $this->translate('Please choose')]
         + \array_combine($this->dbList, $this->dbList)
         + ['_new' => ' -> ' . $this->translate('Create a new Database')];
-    }
-
-    protected function fetchDbList($influxDb)
-    {
-        if ($influxDb === null) {
-            return null;
-        }
-
-        return \array_filter(
-            await($influxDb->listDatabases(), $this->loop(), 5),
-            function ($value) {
-                return $value[0] !== '_';
-            }
-        );
     }
 
     protected function versionIsFine($version)
@@ -307,43 +306,13 @@ class InfluxDbConnectionForm extends Form
         return \version_compare($version, '1.999.999', 'gt') ? 'v2' : 'v1';
     }
 
-    protected function influxDb()
-    {
-        if ($this->influxDb instanceof Promise) {
-            return $this->influxDb;
-        } elseif ($this->influxDb === null) {
-            $deferred = new Deferred();
-            InfluxDbConnectionFactory::create(
-                $this->getElement('base_url')->getValue(),
-                $this->loop()
-            )->then(function ($connection) use ($deferred) {
-                if ($connection instanceof InfluxDbConnectionV2) {
-                    if ($this->hasElementValue('token')) {
-                        $connection->setToken($this->getElementValue('token'));
-                    }
-                    if ($this->hasElementValue('org')) {
-                        $connection->setToken($this->getElementValue('org'));
-                    }
-                }
-
-                $this->influxDb = $connection;
-
-                $deferred->resolve($this->influxDb);
-            });
-
-            $this->influxDb = $deferred->promise();
-        }
-
-        return resolve($this->influxDb);
-    }
-
     protected function addDbSelection()
     {
         if ($this->getSentValue('dbname') === '_new') {
             $elDbName = $this->createElement('hidden', 'dbname');
             $this->registerElement($elDbName);
             $this->prepend($elDbName);
-        } elseif ($this->dbList) {
+        } elseif ($this->getDbList()) {
             $elDbName = $this->createElement('select', 'dbname', [
                 'label'       => $this->translate('Database'),
                 'description' => $this->translate('InfluxDB database name'),
