@@ -6,6 +6,7 @@ use Clue\React\Buzz\Message\ResponseException;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\MappedClass\PerfEntityMetricCSV;
 use Icinga\Module\Vspheredb\PerformanceData\InfluxDb\AsyncInfluxDbWriter;
+use Icinga\Module\Vspheredb\PerformanceData\InfluxDb\DataPoint;
 use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceSet;
 use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceSets;
 use Psr\Log\LoggerAwareInterface;
@@ -82,24 +83,30 @@ class InfluxDbStreamer implements LoggerAwareInterface
      */
     public function streamSet(PerformanceSet $performanceSet, $dbName)
     {
-        $this->logger->info('Starting to stream set: ' . $performanceSet->getMeasurementName());
+        $measurementName = $performanceSet->getMeasurementName();
+        $this->logger->info("Starting to stream set: $measurementName");
         $this->loop->addPeriodicTimer(3, function () use ($dbName) {
             $this->logger->debug('New 3sec timer');
             $this->sendNextBatch($dbName);
         });
-        $counters = $performanceSet->getCounters();
-        $mapper = new PerfMetricMapper($counters);
         /** @var PerfEntityMetricCSV $metric */
         $tags = $performanceSet->fetchObjectTags();
         $metrics = ChunkedPerfdataReader::fetchSet($performanceSet, $this->vCenter, $this->logger);
         while ($this->pendingLines < $this->maxPendingLines && $metrics->valid()) {
             $metric = $metrics->current();
             $this->fetchedMetrics += count($metric->value);
-            $this->queue[] = $mapper->makeInfluxDataPoints(
-                $metric,
-                $performanceSet->getMeasurementName(),
-                $tags
-            );
+            $points = [];
+            foreach ($metric as $ts => $values) {
+                foreach ($values as $instance => $metrics) {
+                    $points[] = new DataPoint(
+                        $measurementName,
+                        $tags[$instance],
+                        $metrics,
+                        $ts
+                    );
+                }
+            }
+            $this->queue[] = $points;
             $metrics->next();
         }
 
