@@ -66,7 +66,12 @@ abstract class PerformanceSet implements LoggerAwareInterface
             ->where('rollup_type NOT IN (?)', ['maximum', 'minimum'])
             ->where('name IN (?)', $this->counters);
 
-        return $db->fetchPairs($query);
+        $counters = [];
+        foreach ($db->fetchPairs($query) as $key => $name) {
+            $counters[(int) $key] = $name;
+        }
+
+        return $counters;
     }
 
     protected function explodeInstances($queryResult)
