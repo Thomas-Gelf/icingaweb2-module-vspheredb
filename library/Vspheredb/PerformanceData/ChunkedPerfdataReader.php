@@ -23,11 +23,12 @@ abstract class ChunkedPerfdataReader
         $setName = $performanceSet->getMeasurementName();
         $vms = $performanceSet->getRequiredMetrics();
         $logger->info("Fetching $setName for " . count($vms) . ' VMs');
+        $counters = $performanceSet->getCounters();
         foreach (array_chunk($vms, 100, true) as $chunk) {
             $logger->info('Fetching ' . count($chunk) . " chunks for $setName");
             $spec = PerformanceQuerySpecHelper::prepareQuerySpec(
                 $performanceSet->getObjectType(),
-                $performanceSet->getCounters(),
+                $counters,
                 $chunk
             );
             $res = $perf->queryPerf($spec);
@@ -39,7 +40,7 @@ abstract class ChunkedPerfdataReader
             }
             $logger->debug('Got ' . count($res) . " results for $setName");
             foreach ($res as $r) {
-                yield $r;
+                yield CompactEntityMetrics::process($r, $setName, $counters);
             }
         }
     }
