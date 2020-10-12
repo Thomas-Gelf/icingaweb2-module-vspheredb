@@ -3,6 +3,7 @@
 namespace Icinga\Module\Vspheredb\Clicommands;
 
 use Exception;
+use gipfl\Cli\Tty;
 use gipfl\Log\Filter\LogLevelFilter;
 use gipfl\Log\Logger;
 use gipfl\Log\Writer\JsonRpcWriter;
@@ -67,8 +68,13 @@ class Command extends CliCommand
 
     protected function enableRpc()
     {
+        if (Tty::isSupported()) {
+            $stdin = (new Tty($this->loop()))->setEcho(false)->stdin();
+        } else {
+            $stdin = new ReadableResourceStream(STDIN, $this->loop());
+        }
         $netString = new StreamWrapper(
-            new ReadableResourceStream(STDIN, $this->loop()),
+            $stdin,
             new WritableResourceStream(STDOUT, $this->loop())
         );
         $this->rpc = new Connection();
