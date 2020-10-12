@@ -198,7 +198,7 @@ class PerfManager
 
     /**
      * @param PerfQuerySpec[] $spec
-     * @return PerfEntityMetricCSV[]|PerfEntityMetric[]
+     * @return PerfEntityMetricCSV[]
      * @throws AuthenticationException
      */
     public function queryPerf($spec)

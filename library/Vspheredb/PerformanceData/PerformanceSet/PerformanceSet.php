@@ -3,9 +3,6 @@
 namespace Icinga\Module\Vspheredb\PerformanceData\PerformanceSet;
 
 use Icinga\Module\Vspheredb\DbObject\VCenter;
-use Icinga\Module\Vspheredb\MappedClass\PerfMetricId;
-use Icinga\Module\Vspheredb\MappedClass\PerfQuerySpec;
-use Icinga\Module\Vspheredb\VmwareDataType\ManagedObjectReference;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
@@ -34,30 +31,9 @@ abstract class PerformanceSet implements LoggerAwareInterface
         $this->logger = new NullLogger();
     }
 
-    abstract public function getMeasurementName();
-
-    abstract  public function getRequiredMetrics();
-
-    abstract public function fetchObjectTags();
-
-    protected function fetchCounters()
+    public function getObjectType()
     {
-        $db = $this->vCenter->getDb();
-        $query = $db->select()->from('performance_counter', [
-            'v' => 'counter_key',
-            'k' => 'name',
-        ])
-            ->where('vcenter_uuid = ?', $this->vCenter->getUuid())
-            ->where('group_name = ?', $this->countersGroup)
-            ->where('rollup_type NOT IN (?)', ['maximum', 'minimum'])
-            ->where('name IN (?)', $this->counters);
-
-        return $db->fetchPairs($query);
-    }
-
-    public function getDb()
-    {
-        return $this->db;
+        return $this->objectType;
     }
 
     public function getCounters()
@@ -65,9 +41,32 @@ abstract class PerformanceSet implements LoggerAwareInterface
         return $this->fetchCounters();
     }
 
-    protected function makeDateTime($timestamp)
+    public function getRequiredMetrics()
     {
-        return gmdate('Y-m-d\TH:i:s\Z', $timestamp);
+        return $this->explodeInstances($this->getDb()->fetchPairs($this->prepareInstancesQuery()));
+    }
+
+    abstract public function getMeasurementName();
+
+    abstract public function fetchObjectTags();
+
+    abstract public function prepareInstancesQuery();
+
+    protected function fetchCounters()
+    {
+        $db = $this->vCenter->getDb();
+        $query = $db
+            ->select()
+            ->from('performance_counter', [
+                'v' => 'counter_key',
+                'k' => 'name',
+            ])
+            ->where('vcenter_uuid = ?', $this->vCenter->getUuid())
+            ->where('group_name = ?', $this->countersGroup)
+            ->where('rollup_type NOT IN (?)', ['maximum', 'minimum'])
+            ->where('name IN (?)', $this->counters);
+
+        return $db->fetchPairs($query);
     }
 
     /**
@@ -81,7 +80,7 @@ abstract class PerformanceSet implements LoggerAwareInterface
         $this->logger->info('Fetching ' . $this->getMeasurementName() . ' for ' . count($vms) . ' VMs');
         foreach (array_chunk($vms, 100, true) as $set) {
             $this->logger->info('Fetching ' . count($set) . ' chunks for ' . $this->getMeasurementName());
-            $spec = $this->prepareQuerySpec($set);
+            $spec = PerformanceQuerySpecHelper::prepareQuerySpec($this->objectType, $this->getCounters(), $set);
             $res = $perf->queryPerf($spec);
             $this->logger->info('Got result');
             if (empty($res)) {
@@ -96,42 +95,20 @@ abstract class PerformanceSet implements LoggerAwareInterface
         }
     }
 
-    /**
-     * @return PerfQuerySpec[]
-     */
-    public function prepareQuerySpec($objects)
+    protected function explodeInstances($queryResult)
     {
-        // 20s -> liegt für 1h vor, also 3600 / 20 = 180
-        $count = 180;
-        $interval = 20; // "realtime"
-        $duration = $interval * ($count);
-        $now = floor(time() / $interval) * $interval;
-        $start = $this->makeDateTime($now - $duration);
-        $end = $this->makeDateTime($now);
-        $counters = $this->getCounters();
+        $result = [];
 
-        $specs = [];
-        foreach ($objects as $moref => $instances) {
-            $instances = preg_split('/,/', $instances);
-            $metrics = [];
-            foreach ($counters as $k => $n) {
-                foreach ($instances as $instance) {
-                    $metrics[] = new PerfMetricId($k, $instance);
-                }
-            }
-
-            $spec = new PerfQuerySpec();
-            $spec->entity = new ManagedObjectReference($this->objectType, $moref);
-            $spec->startTime  = $start;
-            $spec->endTime    = $end; //'2017-12-13T18:10:00Z'
-            // $spec->maxSample = $count;
-            $spec->metricId   = $metrics;
-            $spec->intervalId = $interval;
-            $spec->format     = 'csv';
-            $specs[] = $spec;
+        foreach ($queryResult as $key => $value) {
+            $result[$key] = preg_split('/,/', $value);
         }
 
-        return $specs;
+        return $result;
+    }
+
+    protected function getDb()
+    {
+        return $this->db;
     }
 
     public function __destruct()

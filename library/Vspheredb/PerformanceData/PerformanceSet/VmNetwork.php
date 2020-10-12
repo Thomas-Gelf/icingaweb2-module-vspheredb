@@ -26,29 +26,17 @@ class VmNetwork extends PerformanceSet
         return 'VirtualNetworkAdapter';
     }
 
-    /*
-        // Host and VM:
-        cpu.usage
-        cpu.ready > 20% ist kacke
-        cpu.swapwait
-
-        memory -> swapin, swapout
-        memory -> active, usage, consumed,
-    */
-
-    // instance = '*' -> all instances, instance = '' -> aggregated
-    public function getRequiredMetrics()
+    public function prepareInstancesQuery()
     {
-        $db = $this->getDb();
-        return $db->fetchPairs(
-            $this->prepareBaseQuery()->columns([
+        return $this
+            ->prepareBaseQuery()
+            ->columns([
                 'o.moref',
                 'hardware_key' => "GROUP_CONCAT(vna.hardware_key SEPARATOR ',')",
             ])
             ->group('vm.uuid')
             ->order('vm.runtime_host_uuid')
-            ->order('vna.hardware_key')
-        );
+            ->order('vna.hardware_key');
     }
 
     public function fetchObjectTags()

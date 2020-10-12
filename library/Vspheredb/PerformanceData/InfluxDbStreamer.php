@@ -91,7 +91,7 @@ class InfluxDbStreamer implements LoggerAwareInterface
         $mapper = new PerfMetricMapper($counters);
         /** @var PerfEntityMetricCSV $metric */
         $tags = $performanceSet->fetchObjectTags();
-        $metrics = $performanceSet->fetch();
+        $metrics = ChunkedPerfdataReader::fetchSet($performanceSet, $this->vCenter, $this->logger);
         while ($this->pendingLines < $this->maxPendingLines && $metrics->valid()) {
             $metric = $metrics->current();
             $this->fetchedMetrics += count($metric->value);

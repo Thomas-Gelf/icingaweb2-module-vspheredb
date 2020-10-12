@@ -30,30 +30,27 @@ class HostNetwork extends PerformanceSet
         return 'HostNetworkAdapter';
     }
 
-
     /*
         // Host and VM:
         cpu.usage
-        cpu.ready > 20% ist kacke
+        cpu.ready > 20% is bad
         cpu.swapwait
 
         memory -> swapin, swapout
         memory -> active, usage, consumed,
+        instance = '*' -> all instances, instance = '' -> aggregated
     */
-
-    // instance = '*' -> all instances, instance = '' -> aggregated
-    public function getRequiredMetrics()
+    public function prepareInstancesQuery()
     {
-        $db = $this->getDb();
-        return $db->fetchPairs(
-            $this->prepareBaseQuery()->columns([
+        return $this
+            ->prepareBaseQuery()
+            ->columns([
                 'o.moref',
                 'device' => "GROUP_CONCAT(hpn.device SEPARATOR ',')",
             ])
-                ->group('hs.uuid')
-                ->order('hs.uuid')
-                ->order('hpn.device')
-        );
+            ->group('hs.uuid')
+            ->order('hs.uuid')
+            ->order('hpn.device');
     }
 
     public function fetchObjectTags()
