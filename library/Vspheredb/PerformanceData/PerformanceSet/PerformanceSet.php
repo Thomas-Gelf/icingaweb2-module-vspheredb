@@ -69,32 +69,6 @@ abstract class PerformanceSet implements LoggerAwareInterface
         return $db->fetchPairs($query);
     }
 
-    /**
-     * @throws \Icinga\Exception\AuthenticationException
-     * @throws \Icinga\Exception\NotFoundError
-     */
-    public function fetch()
-    {
-        $perf = $this->vCenter->getApi($this->logger)->perfManager();
-        $vms = $this->getRequiredMetrics();
-        $this->logger->info('Fetching ' . $this->getMeasurementName() . ' for ' . count($vms) . ' VMs');
-        foreach (array_chunk($vms, 100, true) as $set) {
-            $this->logger->info('Fetching ' . count($set) . ' chunks for ' . $this->getMeasurementName());
-            $spec = PerformanceQuerySpecHelper::prepareQuerySpec($this->objectType, $this->getCounters(), $set);
-            $res = $perf->queryPerf($spec);
-            $this->logger->info('Got result');
-            if (empty($res)) {
-                // TODO: This happens. Why? Inspect set?
-                $this->logger->warning('Got EMPTY result');
-                continue;
-            }
-            $this->logger->debug('Got ' . count($res) . ' results for ' . $this->getMeasurementName());
-            foreach ($res as $r) {
-                yield $r;
-            }
-        }
-    }
-
     protected function explodeInstances($queryResult)
     {
         $result = [];
