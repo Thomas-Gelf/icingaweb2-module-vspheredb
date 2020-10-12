@@ -33,7 +33,6 @@ abstract class PerformanceQuerySpecHelper
         foreach ($objectWithInstances as $moref => $instances) {
             $metrics = [];
             foreach ($counters as $k => $n) {
-                var_dump($instances);
                 foreach ($instances as $instance) {
                     $metrics[] = new PerfMetricId($k, $instance);
                 }
