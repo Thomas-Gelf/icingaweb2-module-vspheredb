@@ -21,7 +21,7 @@ abstract class ChunkedPerfdataReader
     {
         $perf = $vCenter->getApi($logger)->perfManager();
         $setName = $performanceSet->getMeasurementName();
-        $vms = $performanceSet->getRequiredMetrics();
+        $vms = $performanceSet->getRequiredInstances();
         $logger->info("Fetching $setName for " . count($vms) . ' VMs');
         $counters = $performanceSet->getCounters();
         foreach (array_chunk($vms, 100, true) as $chunk) {

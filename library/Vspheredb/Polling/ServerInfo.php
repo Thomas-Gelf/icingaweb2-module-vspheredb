@@ -22,6 +22,12 @@ class ServerInfo implements JsonSerializable
         $this->properties = $properties;
     }
 
+    public static function fromPlainObject($object)
+    {
+        // Validation will be implemented once this is remote
+        return new static((array) $object);
+    }
+
     /**
      * @param VCenterServer $server
      * @return static

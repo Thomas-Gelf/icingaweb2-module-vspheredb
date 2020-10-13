@@ -41,7 +41,7 @@ abstract class PerformanceSet implements LoggerAwareInterface
         return $this->fetchCounters();
     }
 
-    public function getRequiredMetrics()
+    public function getRequiredInstances()
     {
         return $this->explodeInstances($this->getDb()->fetchPairs($this->prepareInstancesQuery()));
     }

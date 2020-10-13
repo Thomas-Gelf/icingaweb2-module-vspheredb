@@ -20,6 +20,19 @@ class ServerSet implements JsonSerializable
         }
     }
 
+    public static function fromPlainObject($object)
+    {
+        $self = new static();
+        foreach ($object as $key => $server) {
+            $info = ServerInfo::fromPlainObject($server);
+            // This doesn't fail - yet
+            assert($key === $info->getIdentifier());
+            $self->addServer($info);
+        }
+
+        return $self;
+    }
+
     public function addServer(ServerInfo $server)
     {
         $this->servers[$server->getIdentifier()] = $server;
@@ -42,6 +55,6 @@ class ServerSet implements JsonSerializable
 
     public function jsonSerialize()
     {
-        return $this->servers;
+        return (object) $this->servers;
     }
 }

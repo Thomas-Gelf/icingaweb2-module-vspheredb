@@ -66,7 +66,6 @@ class TaskRunner
             $this->onProcessStarted($process, true);
         });
         $command->on('error', function (Exception $e) {
-            var_dump($e->getMessage());
             $this->logger->error(rtrim($e->getMessage()));
             $this->stop();
         });

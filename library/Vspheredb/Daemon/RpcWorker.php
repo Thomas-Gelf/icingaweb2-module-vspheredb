@@ -6,6 +6,8 @@ use Evenement\EventEmitterTrait;
 use gipfl\Protocol\JsonRpc\Connection;
 use gipfl\Protocol\JsonRpc\Notification;
 use gipfl\Protocol\JsonRpc\PacketHandler;
+use Icinga\Module\Vspheredb\Polling\RequiredPerfData;
+use Icinga\Module\Vspheredb\Polling\ServerSet;
 use Psr\Log\LoggerInterface;
 use React\EventLoop\LoopInterface;
 use React\Promise\Deferred;
@@ -23,7 +25,10 @@ class RpcWorker implements PacketHandler
     /** @var Connection */
     protected $rpc;
 
+    /** @var ServerSet */
     protected $servers;
+
+    protected $requiredPerfData;
 
     public function __construct(Connection $rpc, LoggerInterface $logger, LoopInterface $loop)
     {
@@ -65,8 +70,13 @@ class RpcWorker implements PacketHandler
 
     protected function setServers($servers)
     {
-        $this->logger->notice('GOT SERVERS');
-        $this->servers = $servers;
+        $this->servers = ServerSet::fromPlainObject($servers);
+        return true;
+    }
+
+    protected function setRequiredPerfData($perfdata)
+    {
+        $this->requiredPerfData = RequiredPerfData::fromPlainObject($perfdata);
         return true;
     }
 
@@ -80,6 +90,8 @@ class RpcWorker implements PacketHandler
                 );
             case 'vspheredb.setServers':
                 return $this->setServers($notification->getParams());
+            case 'vspheredb.setRequiredPerfData':
+                return $this->setRequiredPerfData($notification->getParams());
         }
 
         return null;
