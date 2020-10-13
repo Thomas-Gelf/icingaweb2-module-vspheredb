@@ -4,7 +4,6 @@ namespace Icinga\Module\Vspheredb\Rpc;
 
 use gipfl\Protocol\JsonRpc\Notification;
 use gipfl\Protocol\JsonRpc\PacketHandler;
-use Icinga\Module\Vspheredb\Db;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\DbObject\VCenterServer;
 use Psr\Log\LoggerAwareTrait;
@@ -26,11 +25,9 @@ class LogProxy implements PacketHandler
 
     protected $context = [];
 
-    public function __construct(Db $connection, LoggerInterface $logger)
+    public function __construct(LoggerInterface $logger)
     {
         $this->setLogger($logger);
-        $this->connection = $connection;
-        $this->db = $connection->getDbAdapter();
     }
 
     public function setPrefix($prefix)

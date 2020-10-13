@@ -14,6 +14,8 @@ use Icinga\Module\Vspheredb\Db\Migrations;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\DbObject\VCenterServer;
 use Icinga\Module\Vspheredb\LinuxUtils;
+use Icinga\Module\Vspheredb\Polling\ServerInfo;
+use Icinga\Module\Vspheredb\Polling\ServerSet;
 use Icinga\Module\Vspheredb\Rpc\LogProxy;
 use Icinga\Module\Vspheredb\Util;
 use Ramsey\Uuid\Uuid;
@@ -39,6 +41,9 @@ class Daemon
 
     /** @var ServerRunner[] */
     protected $running = [];
+
+    /** @var TaskRunner */
+    protected $worker;
 
     /** @var array [VCenterServer->get('id') => true] */
     protected $blackListed = [];
@@ -93,6 +98,11 @@ class Daemon
         $this->registerSignalHandlers();
         $this->systemd = NotifySystemD::ifRequired($loop);
         $this->makeReady();
+        $this->worker = new TaskRunner($this->logger);
+        $logProxy = new LogProxy($this->logger);
+        $logProxy->setPrefix("[worker] ");
+        $this->worker->forwardLog($logProxy);
+        $this->worker->run($loop);
         $refresh = function () {
             $this->refreshConfiguredServers();
             $this->refreshCliTitle();
@@ -438,6 +448,7 @@ QUERY;
     /**
      * @param VCenter[] $vCenters
      * @param VCenterServer[] $vServers
+     * @return bool
      */
     protected function checkRequiredProcesses($vCenters, $vServers)
     {
@@ -471,8 +482,10 @@ QUERY;
             }
         }
 
+        $changed = false;
         foreach ($required as $id => $vServer) {
             if (! isset($this->running[$id])) {
+                $changed = true;
                 $this->logger->info("vCenter ID=$id is now starting");
                 $this->running[$id] = $this->runServer($vServer);
             }
@@ -480,12 +493,15 @@ QUERY;
 
         foreach ($this->running as $id => $serverRunner) {
             if (! isset($required[$id])) {
+                $changed = true;
                 $this->running[$id]->stop();
                 unset($this->running[$id]);
             }
         }
         $this->refreshCliTitle();
         gc_collect_cycles();
+
+        return $changed;
     }
 
     /**
@@ -505,9 +521,7 @@ QUERY;
         $runner = new ServerRunner($server, $this->logger);
         $serverId = $server->get('id');
         $this->logger->info("Starting for $label");
-        /** @var Db $connection */
-        $connection = $server->getConnection();
-        $logProxy = new LogProxy($connection, $this->logger);
+        $logProxy = new LogProxy($this->logger);
         $logProxy->setPrefix("[$label] ");
         if ($vCenter) {
             $logProxy->setVCenter($vCenter);
@@ -557,7 +571,25 @@ QUERY;
             if ($this->getState() === 'connected') {
                 $vCenters = VCenter::loadAll($this->connection, null, 'id');
                 $vServers = VCenterServer::loadAll($this->connection, null, 'id');
-                $this->checkRequiredProcesses($vCenters, $vServers);
+                if ($this->checkRequiredProcesses($vCenters, $vServers)) {
+                    $set = new ServerSet();
+                    foreach ($vServers as $server) {
+                        if (isset($this->running[$server->get('id')])) {
+                            $set->addServer(ServerInfo::fromServer($server));
+                        }
+                    }
+                    // Refresh remote Server list.
+                    $this->logger->notice('Server list changed');
+                    $this->worker->rpc()
+                        ->request('vspheredb.setServers', $set)
+                        ->then(function ($result) {
+                            if ($result === true) {
+                                $this->logger->notice('Refreshed worker Server config');
+                            } else {
+                                var_dump($result);
+                            }
+                        });
+                }
             } else {
                 $this->stopRunners();
             }

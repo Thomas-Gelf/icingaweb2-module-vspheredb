@@ -5,6 +5,7 @@ namespace Icinga\Module\Vspheredb\Clicommands;
 use Exception;
 use Icinga\Module\Vspheredb\CliUtil;
 use Icinga\Module\Vspheredb\Daemon\PerfDataRunner;
+use Icinga\Module\Vspheredb\Daemon\RpcWorker;
 use Icinga\Module\Vspheredb\Daemon\SyncRunner;
 use Icinga\Module\Vspheredb\Db;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
@@ -92,6 +93,20 @@ class TaskCommand extends Command
                     });
             } catch (Exception $e) {
                 $this->failFriendly('sync', $e, $subject);
+            }
+        });
+        $this->loop()->run();
+    }
+
+    public function workerAction()
+    {
+        $this->loop()->futureTick(function () {
+            try {
+                CliUtil::setTitle('Icinga::vSphereDB::worker');
+                $worker = new RpcWorker($this->rpc, $this->logger, $this->loop());
+                $worker->run();
+            } catch (Exception $e) {
+                $this->failFriendly('worker', $e);
             }
         });
         $this->loop()->run();

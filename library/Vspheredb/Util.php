@@ -29,6 +29,11 @@ class Util
         return (int) round(1000 * ((int) $time[1] + (float) $time[0]));
     }
 
+    public static function timeStringToUnixTime($string)
+    {
+        return (new DateTime($string))->getTimestamp();
+    }
+
     public static function timeStringToUnixMs($string)
     {
         $time = new DateTime($string);
