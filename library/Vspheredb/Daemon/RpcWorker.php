@@ -7,6 +7,8 @@ use gipfl\Protocol\JsonRpc\Connection;
 use gipfl\Protocol\JsonRpc\Notification;
 use gipfl\Protocol\JsonRpc\PacketHandler;
 use Icinga\Module\Vspheredb\Api;
+use Icinga\Module\Vspheredb\PerformanceData\ChunkedPerfdataReader;
+use Icinga\Module\Vspheredb\PerformanceData\CompactEntityMetrics;
 use Icinga\Module\Vspheredb\Polling\RequiredPerfData;
 use Icinga\Module\Vspheredb\Polling\ServerSet;
 use Psr\Log\LoggerInterface;
@@ -29,8 +31,10 @@ class RpcWorker implements PacketHandler
     /** @var ServerSet */
     protected $servers;
 
+    /** @var RequiredPerfData */
     protected $requiredPerfData;
 
+    /** @var Api[] */
     protected $apis = [];
 
     public function __construct(Connection $rpc, LoggerInterface $logger, LoopInterface $loop)
@@ -52,6 +56,28 @@ class RpcWorker implements PacketHandler
         $this->logger->notice('RPC Worker is running');
         $this->loop->addPeriodicTimer(5, $health);
         $this->loop->futureTick($health);
+    }
+
+    protected function fetchOnce()
+    {
+        foreach ($this->requiredPerfData->getSets() as $set) {
+            $api = $this->apis[$set->getVCenterId()];
+            $this->logger->notice(sprintf(
+                'Fetching %s from vCenter %s',
+                $set->getMeasurementName(),
+                $set->getVCenterId()
+            ));
+            $metrics = ChunkedPerfdataReader::fetchSet($set, $api, $this->logger);
+            /** @var CompactEntityMetrics $metric */
+            foreach ($metrics as $metric) {
+                $this->rpc->notification('perfData.result', $metric);
+            }
+            $this->logger->notice(sprintf(
+                'Done with %s from vCenter %s',
+                $set->getMeasurementName(),
+                $set->getVCenterId()
+            ));
+        }
     }
 
     protected function runTask($name, $params)
@@ -84,9 +110,10 @@ class RpcWorker implements PacketHandler
         return true;
     }
 
-    protected function setRequiredPerfData($perfdata)
+    protected function setRequiredPerfData($perfData)
     {
-        $this->requiredPerfData = RequiredPerfData::fromPlainObject($perfdata);
+        $this->requiredPerfData = RequiredPerfData::fromPlainObject($perfData);
+        $this->fetchOnce();
         return true;
     }
 
