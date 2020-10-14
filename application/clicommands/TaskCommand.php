@@ -85,57 +85,6 @@ class TaskCommand extends Command
         $this->loop()->run();
     }
 
-    /**
-     * Sync all objects
-     *
-     * Still a prototype
-     *
-     * USAGE
-     *
-     * icingacli vsphere task perfdata --vCenterId <id> [--rpc]
-     */
-    public function perfdataActionx()
-    {
-        $this->loop()->futureTick(function () {
-            $subject = null;
-            try {
-                CliUtil::setTitle('Icinga::vSphereDB::perfdata');
-                $vCenter = $this->requireVCenter();
-                $subject = $vCenter->get('name');
-                CliUtil::setTitle(sprintf('Icinga::vSphereDB::perfdata (%s)', $subject));
-                $time = microtime(true);
-                (new PerfDataRunner($vCenter, $this->logger))
-                    ->on('beginTask', function ($taskName) use ($subject, &$time) {
-                        CliUtil::setTitle(sprintf('Icinga::vSphereDB::perfdata (%s: %s)', $subject, $taskName));
-                        $time = microtime(true);
-                    })
-                    ->on('endTask', function ($taskName) use ($subject, &$time) {
-                        CliUtil::setTitle(sprintf('Icinga::vSphereDB::perfdata (%s)', $subject));
-                        $duration = microtime(true) - $time;
-                        $this->logger->debug(sprintf(
-                            'Task "%s" took %.2Fms on %s',
-                            $taskName,
-                            ($duration * 1000),
-                            $subject
-                        ));
-                    })
-                    ->on('dbError', function (\Zend_Db_Exception $e) use ($subject) {
-                        CliUtil::setTitle(sprintf('Icinga::vSphereDB::perfdata (%s: FAILED)', $subject));
-                        $this->failFriendly('perfdata', $e, $subject);
-                    })
-                    ->run($this->loop())
-                    ->then(function () use ($subject) {
-                        $this->failFriendly('perfdata', 'Runner stopped. Should not happen', $subject);
-                    })->otherwise(function ($reason = null) use ($subject) {
-                        $this->failFriendly('perfdata', $reason, $subject);
-                    });
-            } catch (Exception $e) {
-                $this->failFriendly('perfdata', $e, $subject);
-            }
-        });
-        $this->loop()->run();
-    }
-
     public function demoActionx()
     {
         $vCenter = $this->requireVCenter();
