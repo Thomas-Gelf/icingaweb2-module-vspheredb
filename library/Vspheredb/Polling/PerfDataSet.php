@@ -40,6 +40,14 @@ class PerfDataSet implements JsonSerializable
     }
 
     /**
+     * @return int
+     */
+    public function getVCenterId()
+    {
+        return $this->vCenterId;
+    }
+
+    /**
      * @return array
      */
     public function getCounters()

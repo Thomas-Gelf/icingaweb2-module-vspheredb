@@ -11,6 +11,7 @@ use JsonSerializable;
 
 class RequiredPerfData implements JsonSerializable
 {
+    /** @var PerfDataSet[] */
     protected $sets = [];
 
     /**
@@ -37,6 +38,14 @@ class RequiredPerfData implements JsonSerializable
     public function addSet(PerfDataSet $set)
     {
         $this->sets[] = $set;
+    }
+
+    /**
+     * @return PerfDataSet[]
+     */
+    public function getSets()
+    {
+        return $this->sets;
     }
 
     /**
