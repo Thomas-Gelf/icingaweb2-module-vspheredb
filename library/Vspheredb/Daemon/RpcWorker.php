@@ -7,7 +7,6 @@ use gipfl\Protocol\JsonRpc\Connection;
 use gipfl\Protocol\JsonRpc\Notification;
 use gipfl\Protocol\JsonRpc\PacketHandler;
 use Icinga\Module\Vspheredb\Api;
-use Icinga\Module\Vspheredb\DbObject\VCenterServer;
 use Icinga\Module\Vspheredb\Polling\RequiredPerfData;
 use Icinga\Module\Vspheredb\Polling\ServerSet;
 use Psr\Log\LoggerInterface;
@@ -78,12 +77,10 @@ class RpcWorker implements PacketHandler
         foreach ($this->servers->getServers() as $server) {
             $id = $server->get('id');
             if (! isset($this->apis[$id])) {
-                $this->apis[$id] = Api::forServer(
-                    VCenterServer::create((array) $server->jsonSerialize()),
-                    $this->logger
-                );
+                $this->apis[$id] = Api::forServer($server, $this->logger);
             }
         }
+
         return true;
     }
 
