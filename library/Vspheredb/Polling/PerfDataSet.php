@@ -10,6 +10,9 @@ class PerfDataSet implements JsonSerializable
     /** @var int */
     protected $vCenterId;
 
+    /** @var string */
+    protected $measurementName;
+
     /** @var array */
     protected $counters;
 
@@ -18,25 +21,37 @@ class PerfDataSet implements JsonSerializable
 
     /**
      * ServerInfo constructor.
-     * @param $vCenterId
+     * @param int $vCenterId
+     * @param string $measurementName
      * @param array $counters
      * @param array $requiredInstances
      */
-    public function __construct($vCenterId, array $counters, array $requiredInstances)
+    public function __construct($vCenterId, $measurementName, array $counters, array $requiredInstances)
     {
         $this->vCenterId = $vCenterId;
+        $this->measurementName = $measurementName;
         $this->counters = $counters;
         $this->requiredInstances = $requiredInstances;
     }
 
     public static function fromPlainObject($object)
     {
-        return new static($object->vCenterId, (array) $object->counters, (array) $object->instances);
+        return new static(
+            $object->vCenterId,
+            $object->measurementName,
+            (array) $object->counters,
+            (array) $object->instances
+        );
     }
 
     public static function fromPerformanceSet($vCenterId, PerformanceSet $set)
     {
-        return new static($vCenterId, $set->getCounters(), $set->getRequiredInstances());
+        return new static(
+            $vCenterId,
+            $set->getMeasurementName(),
+            $set->getCounters(),
+            $set->getRequiredInstances()
+        );
     }
 
     /**
@@ -45,6 +60,14 @@ class PerfDataSet implements JsonSerializable
     public function getVCenterId()
     {
         return $this->vCenterId;
+    }
+
+    /**
+     * @return string
+     */
+    public function getMeasurementName()
+    {
+        return $this->measurementName;
     }
 
     /**
@@ -66,9 +89,10 @@ class PerfDataSet implements JsonSerializable
     public function jsonSerialize()
     {
         return ((object) [
-            'vCenterId' => $this->vCenterId,
-            'counters'  => $this->getCounters(),
-            'instances' => $this->getRequiredInstances(),
+            'vCenterId'       => $this->vCenterId,
+            'measurementName' => $this->getMeasurementName(),
+            'counters'        => $this->getCounters(),
+            'instances'       => $this->getRequiredInstances(),
         ]);
     }
 }
