@@ -35,6 +35,20 @@ class DataPoint
         }
     }
 
+    public function addTags($tags)
+    {
+        $this->tags = array_merge($this->tags, (array) $tags);
+    }
+
+    public function getTag($name, $default = null)
+    {
+        if (array_key_exists($name, $this->tags)) {
+            return $this->tags[$name];
+        } else {
+            return $default;
+        }
+    }
+
     public function __toString()
     {
         return LineProtocol::renderMeasurement($this->measurement, $this->tags, $this->fields, $this->timestamp);

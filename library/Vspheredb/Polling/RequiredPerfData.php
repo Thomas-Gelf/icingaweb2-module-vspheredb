@@ -71,9 +71,7 @@ class RequiredPerfData implements JsonSerializable
             if (! isset($vCenterServers[$vCenterId])) {
                 continue;
             }
-            foreach (PerformanceSets::listAvailableSets() as $class) {
-                $set = new $class($vCenter);
-                assert($set instanceof PerformanceSet);
+            foreach (PerformanceSets::createInstancesForVCenter($vCenter) as $set) {
                 $required->addSet(PerfDataSet::fromPerformanceSet($vCenterId, $set));
             }
         }

@@ -7,8 +7,11 @@ use Evenement\EventEmitterTrait;
 use gipfl\Protocol\JsonRpc\Connection;
 use gipfl\Protocol\JsonRpc\Notification;
 use gipfl\Protocol\JsonRpc\PacketHandler;
+use Icinga\Module\Vspheredb\Db;
+use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\LinuxUtils;
 use Icinga\Module\Vspheredb\PerformanceData\CompactEntityMetrics;
+use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceSets;
 use Icinga\Module\Vspheredb\Rpc\LogProxy;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
@@ -38,10 +41,20 @@ class TaskRunner implements PacketHandler
     /** @var Connection */
     protected $rpc;
 
+    /** @var Db|null */
+    protected $db;
+
     public function __construct(LoggerInterface $logger)
     {
         $this->setLogger($logger);
         $this->health = (object) [];
+    }
+
+    public function setDbConnection(Db $db = null)
+    {
+        $this->db = $db;
+
+        return $this;
     }
 
     public function forwardLog(LogProxy $logProxy)
@@ -156,17 +169,52 @@ class TaskRunner implements PacketHandler
         });
     }
 
-
     public function handle(Notification $notification)
     {
         switch ($notification->getMethod()) {
             case 'perfData.result':
-                $metrics = new CompactEntityMetrics($notification->getParams());
-                $this->logger->notice('Perfdata: ' . print_r(, 1));
+                $metrics = new CompactEntityMetrics($notification->getParam('metrics'));
+                $this->enrichDataPoints($notification->getParam('vCenterId'), $metrics);
                 break;
         }
 
         return null;
+    }
+
+    protected function enrichDataPoints($vCenterId, CompactEntityMetrics $metrics)
+    {
+        if (! $this->db) {
+            $this->logger->warning('Cannot enrich data points, got no DB');
+            // TODO: Queue?
+            return;
+        }
+        try {
+            $perfSet = PerformanceSets::createInstanceByMeasurementName(
+                $metrics->getMeasurementName(),
+                VCenter::loadWithAutoIncId($vCenterId, $this->db)
+            );
+            // Hint: loading all of them might be too much, but WHERE IN (1000 objects)
+            //       probably wouldn't be faster
+            $tags = $perfSet->fetchObjectTags();
+        } catch (\Throwable $e) {
+            $this->logger->error($e->getMessage() . $e->getTraceAsString());
+            return;
+        }
+
+        try {
+            foreach ($metrics->getDataPoints() as $dataPoint) {
+                $instance = $dataPoint->getTag('instance');
+                if (isset($tags[$instance])) {
+                    $dataPoint->addTags($tags[$instance]);
+                    $this->logger->notice(rtrim((string) $dataPoint));
+                } else {
+                    $this->logger->error("No tags for $instance");
+                }
+            }
+        } catch (\Throwable $e) {
+            $this->logger->error($e->getMessage() . $e->getTraceAsString());
+            return;
+        }
     }
 
     public function __destruct()

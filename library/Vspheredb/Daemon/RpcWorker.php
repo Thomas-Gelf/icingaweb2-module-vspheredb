@@ -84,25 +84,22 @@ class RpcWorker implements PacketHandler
         $deferred = new Deferred();
         $manager = $this->apis[$set->getVCenterId()]->perfManager();
         $this->loop->futureTick(function () use ($deferred, $manager, $specs, $set) {
-            $setName = sprintf(
-                '%s (vCenterId=%s)',
-                $set->getMeasurementName(),
-                $set->getVCenterId()
-            );
+            $setName = $set->getMeasurementName();
+            $logName = sprintf('%s (vCenterId=%s)', $setName, $set->getVCenterId());
             $res = $manager->queryPerf($specs);
             if (empty($res)) {
                 // TODO: This happens. Why? Inspect set?
-                $this->logger->warning("Got an EMPTY result for $setName");
+                $this->logger->warning("Got an EMPTY result for $logName");
                 $deferred->resolve([]);
                 return;
             }
-            $this->logger->debug('Got ' . count($res) . " results for $setName");
+            $this->logger->debug('Got ' . count($res) . " results for $logName");
             $result = [];
             foreach ($res as $r) {
                 $result[] = CompactEntityMetrics::process($r, $setName, $set->getCounters());
             }
 
-            $deferred->resolve($result);
+            $deferred->resolve([$set->getVCenterId(), $result]);
         });
 
         return $deferred->promise();
@@ -120,10 +117,14 @@ class RpcWorker implements PacketHandler
         $this
             ->fetchSpecs($set, $specs)
             ->then(function ($result) {
-                $this->logger->notice('Got perf result');
+                list($vCenterId, $result) = $result;
+                $this->logger->notice("Got perf result for vCenter=$vCenterId");
                 /** @var CompactEntityMetrics $metrics */
                 foreach ($result as $metrics) {
-                    $this->rpc->notification('perfData.result', $metrics);
+                    $this->rpc->notification('perfData.result', [
+                        'vCenterId' => $vCenterId,
+                        'metrics' => $metrics
+                    ]);
                 }
             }, function (\Exception $e) {
                 $this->logger->error($e->getMessage());
@@ -210,9 +211,20 @@ class RpcWorker implements PacketHandler
     protected function setRequiredPerfData($perfData)
     {
         $this->requiredPerfData = RequiredPerfData::fromPlainObject($perfData);
-        $this->fillQueue();
+        $this->scheduleFillQueue();
 
         return true;
+    }
+
+    protected function scheduleFillQueue()
+    {
+        $this->loop->futureTick(function () {
+            try {
+                $this->fillQueue();
+            } catch (\Throwable $e) {
+                $this->logger->error($e->getMessage() . $e->getTraceAsString());
+            }
+        });
     }
 
     public function handle(Notification $notification)
@@ -229,11 +241,11 @@ class RpcWorker implements PacketHandler
                 case 'vspheredb.setRequiredPerfData':
                     return $this->setRequiredPerfData($notification->getParams());
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             if ($notification instanceof Request) {
                 return $e;
             } else {
-                $this->logger->error($e->getMessage());
+                $this->logger->error($e->getMessage() . $e->getTraceAsString());
             }
         }
 

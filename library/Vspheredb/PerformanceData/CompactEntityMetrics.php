@@ -3,6 +3,7 @@
 namespace Icinga\Module\Vspheredb\PerformanceData;
 
 use Icinga\Module\Vspheredb\MappedClass\PerfEntityMetricCSV;
+use Icinga\Module\Vspheredb\PerformanceData\InfluxDb\DataPoint;
 use Icinga\Module\Vspheredb\Util;
 use JsonSerializable;
 use function count;
@@ -15,6 +16,56 @@ class CompactEntityMetrics implements JsonSerializable
     public function __construct($properties)
     {
         $this->properties = $properties;
+    }
+
+    public function getCounters()
+    {
+        return (array) $this->properties->counters;
+    }
+
+    public function getMeasurementName()
+    {
+        return $this->properties->perfSet;
+    }
+
+    public function normalize()
+    {
+        $result = [];
+        $dates = $this->properties->dates;
+        $counters = $this->getCounters();
+        foreach ($this->properties->metrics as $instance => $series) {
+            foreach ($series as $counterKey => $flatValues) {
+                $counter = $counters[$counterKey];
+                foreach ($flatValues as $idx => $value) {
+                    $result[$dates[$idx]][$instance][$counter] = $value;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @return DataPoint[]
+     */
+    public function getDataPoints()
+    {
+        $result = $this->normalize();
+        $entity = $this->properties->entity;
+        $measurement = $this->getMeasurementName();
+        $points = [];
+        foreach ($result as $time => $instances) {
+            foreach ($instances as $instance => $counters) {
+                $points[$time] = new DataPoint(
+                    $measurement,
+                    ['instance' => "$entity/$instance"],
+                    $counters,
+                    $time
+                );
+            }
+        }
+
+        return $points;
     }
 
     public static function process(PerfEntityMetricCSV $metric, $setName, $countersMap)

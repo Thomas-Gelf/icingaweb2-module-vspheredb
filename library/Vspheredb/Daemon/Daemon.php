@@ -133,6 +133,7 @@ class Daemon
     protected function onConnected()
     {
         $this->setDaemonStatus('Connected to the database', 'notice');
+        $this->worker->setDbConnection($this->connection);
 
         $fail = function (Exception $e) {
             $this->logger->error($e->getMessage());
@@ -221,6 +222,7 @@ QUERY;
     {
         $this->setDaemonStatus('Database connection has been closed', 'error');
         // state cannot be shutdown
+        $this->worker->setDbConnection(null);
         if ($this->getState() !== 'shutdown') {
             $this->reconnectToDb();
         }
