@@ -196,7 +196,7 @@ class Command extends CliCommand
     {
         $value = $this->params->get($name);
         if ($value === null) {
-            /** @var Cli $app */
+            /** @var \Icinga\Application\Cli $app */
             $app = $this->app;
             $this->showUsage($app->cliLoader()->getActionName());
             $this->fail("'$name' parameter is required");
