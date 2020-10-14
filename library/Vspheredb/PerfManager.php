@@ -140,63 +140,6 @@ class PerfManager
     }
 
     /**
-     * @param $metrics
-     * @param $names
-     * @param $type
-     * @param $interval
-     * @param $count
-     * @return PerfEntityMetricCSV[]
-     * @throws \Icinga\Exception\AuthenticationException
-     */
-    public function XXfetchMetrics($metrics, $names, $type, $interval, $count)
-    {
-        $duration = $interval * ($count);
-        $now = floor(time() / $interval) * $interval;
-
-        $start = $this->makeDateTime($now - $duration);
-        $end = $this->makeDateTime($now);
-
-        $counters = $metrics;
-        if (is_array($names)) {
-            $specs = [];
-            foreach ($names as $name => $instance) {
-                $spec = new PerfQuerySpec();
-                $spec->entity = new ManagedObjectReference($type, $name);
-                $spec->startTime  = $start;
-                $spec->endTime    = $end; //'2017-12-13T18:10:00Z'
-                // $spec->maxSample = $count;
-                $spec->intervalId = $interval;
-                $spec->format     = 'csv';
-                if (is_int($name)) {
-                    $spec->metricId = $this->cloneMetrics($metrics);
-                } else {
-                    $instances = preg_split('/,/', $instance);
-                    $metrics = [];
-                    foreach ($counters as $k => $n) {
-                        foreach ($instances as $instance) {
-                            $metrics[] = new PerfMetricId($k, $instance);
-                        }
-                    }
-                    $spec->metricId = $metrics;
-                }
-                $specs[] = $spec;
-            }
-        } else {
-            $spec = new PerfQuerySpec();
-            $spec->entity = new ManagedObjectReference($type, $names);
-            $spec->startTime  = $start;
-            $spec->endTime    = $end; //'2017-12-13T18:10:00Z'
-            // $spec->maxSample = $count;
-            $spec->metricId   = $this->cloneMetrics($metrics);
-            $spec->intervalId = $interval;
-            $spec->format     = 'csv';
-            $specs = [$spec];
-        }
-
-        return $this->queryPerf($specs);
-    }
-
-    /**
      * @param PerfQuerySpec[] $spec
      * @return PerfEntityMetricCSV[]
      * @throws AuthenticationException
