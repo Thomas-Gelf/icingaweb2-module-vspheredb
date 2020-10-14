@@ -6,6 +6,8 @@ use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceQuerySpecHelper;
 use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceSet;
 use Psr\Log\LoggerInterface;
+use function array_chunk;
+use function count;
 
 abstract class ChunkedPerfdataReader
 {
@@ -25,17 +27,21 @@ abstract class ChunkedPerfdataReader
         $logger->info("Fetching $setName for " . count($vms) . ' VMs');
         $counters = $performanceSet->getCounters();
         foreach (array_chunk($vms, 100, true) as $chunk) {
-            $logger->info('Fetching ' . count($chunk) . " chunks for $setName");
-            $spec = PerformanceQuerySpecHelper::prepareQuerySpec(
+            $specs = PerformanceQuerySpecHelper::prepareQuerySpec(
                 $performanceSet->getObjectType(),
                 $counters,
                 $chunk
             );
-            $res = $perf->queryPerf($spec);
-            $logger->info('Got result');
+            $logger->info(sprintf(
+                'Fetching a chunk with %d objects (%d instances) for %s',
+                count($chunk),
+                count($specs),
+                $setName
+            ));
+            $res = $perf->queryPerf($specs);
             if (empty($res)) {
                 // TODO: This happens. Why? Inspect set?
-                $logger->warning('Got EMPTY result');
+                $logger->warning("Got an EMPTY result for $setName");
                 continue;
             }
             $logger->debug('Got ' . count($res) . " results for $setName");
