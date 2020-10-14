@@ -6,6 +6,8 @@ use Evenement\EventEmitterTrait;
 use gipfl\Protocol\JsonRpc\Connection;
 use gipfl\Protocol\JsonRpc\Notification;
 use gipfl\Protocol\JsonRpc\PacketHandler;
+use Icinga\Module\Vspheredb\Api;
+use Icinga\Module\Vspheredb\DbObject\VCenterServer;
 use Icinga\Module\Vspheredb\Polling\RequiredPerfData;
 use Icinga\Module\Vspheredb\Polling\ServerSet;
 use Psr\Log\LoggerInterface;
@@ -29,6 +31,8 @@ class RpcWorker implements PacketHandler
     protected $servers;
 
     protected $requiredPerfData;
+
+    protected $apis = [];
 
     public function __construct(Connection $rpc, LoggerInterface $logger, LoopInterface $loop)
     {
@@ -71,6 +75,15 @@ class RpcWorker implements PacketHandler
     protected function setServers($servers)
     {
         $this->servers = ServerSet::fromPlainObject($servers);
+        foreach ($this->servers->getServers() as $server) {
+            $id = $server->get('id');
+            if (! isset($this->apis[$id])) {
+                $this->apis[$id] = Api::forServer(
+                    VCenterServer::create((array) $server->jsonSerialize()),
+                    $this->logger
+                );
+            }
+        }
         return true;
     }
 
