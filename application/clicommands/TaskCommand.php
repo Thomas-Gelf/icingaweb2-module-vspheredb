@@ -63,34 +63,7 @@ class TaskCommand extends Command
                 if ($subject === null) {
                     $subject = 'unknown';
                 }
-                CliUtil::setTitle(sprintf('Icinga::vSphereDB::sync (%s)', $subject));
-                $time = microtime(true);
-                (new SyncRunner($vCenter, $this->logger))
-                    ->showTrace($this->showTrace())
-                    ->on('beginTask', function ($taskName) use ($subject, &$time) {
-                        CliUtil::setTitle(sprintf('Icinga::vSphereDB::sync (%s: %s)', $subject, $taskName));
-                        $time = microtime(true);
-                    })
-                    ->on('endTask', function ($taskName) use ($subject, &$time) {
-                        CliUtil::setTitle(sprintf('Icinga::vSphereDB::sync (%s)', $subject));
-                        $duration = microtime(true) - $time;
-                        $this->logger->debug(sprintf(
-                            'Task "%s" took %.2Fms on %s',
-                            $taskName,
-                            ($duration * 1000),
-                            $subject
-                        ));
-                    })
-                    ->on('dbError', function (\Zend_Db_Exception $e) use ($subject) {
-                        CliUtil::setTitle(sprintf('Icinga::vSphereDB::sync (%s: FAILED)', $subject));
-                        $this->failFriendly('sync', $e, $subject);
-                    })
-                    ->run($this->loop())
-                    ->then(function () use ($subject) {
-                        $this->failFriendly('sync', 'Sync stopped. Should not happen', $subject);
-                    })->otherwise(function ($reason = null) use ($subject) {
-                        $this->failFriendly('sync', $reason, $subject);
-                    });
+                $this->runSync($vCenter, $subject);
             } catch (Exception $e) {
                 $this->failFriendly('sync', $e, $subject);
             }
@@ -168,6 +141,38 @@ class TaskCommand extends Command
         $vCenter = $this->requireVCenter();
         $helper = new VmDiskTagHelper($vCenter);
         print_r($helper->fetchVmTags());
+    }
+
+    protected function runSync(VCenter $vCenter, $subject)
+    {
+        CliUtil::setTitle(sprintf('Icinga::vSphereDB::sync (%s)', $subject));
+        $time = microtime(true);
+        (new SyncRunner($vCenter, $this->logger))
+            ->showTrace($this->showTrace())
+            ->on('beginTask', function ($taskName) use ($subject, &$time) {
+                CliUtil::setTitle(sprintf('Icinga::vSphereDB::sync (%s: %s)', $subject, $taskName));
+                $time = microtime(true);
+            })
+            ->on('endTask', function ($taskName) use ($subject, &$time) {
+                CliUtil::setTitle(sprintf('Icinga::vSphereDB::sync (%s)', $subject));
+                $duration = microtime(true) - $time;
+                $this->logger->debug(sprintf(
+                    'Task "%s" took %.2Fms on %s',
+                    $taskName,
+                    ($duration * 1000),
+                    $subject
+                ));
+            })
+            ->on('dbError', function (\Zend_Db_Exception $e) use ($subject) {
+                CliUtil::setTitle(sprintf('Icinga::vSphereDB::sync (%s: FAILED)', $subject));
+                $this->failFriendly('sync', $e, $subject);
+            })
+            ->run($this->loop())
+            ->then(function () use ($subject) {
+                $this->failFriendly('sync', 'Sync stopped. Should not happen', $subject);
+            })->otherwise(function ($reason = null) use ($subject) {
+                $this->failFriendly('sync', $reason, $subject);
+            });
     }
 
     protected function requireVCenter()
