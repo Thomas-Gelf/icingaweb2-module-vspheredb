@@ -229,6 +229,11 @@ class VmsTable extends ObjectsTable
         ];
     }
 
+    protected function getDefaultSortColumns()
+    {
+        return ['object_name'];
+    }
+
     protected function createObjectNameColumn()
     {
         return $this->createColumn('object_name', $this->translate('Name'), [
