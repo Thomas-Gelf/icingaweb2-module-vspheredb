@@ -7,6 +7,7 @@ use Exception;
 use Icinga\Exception\AuthenticationException;
 use Icinga\Module\Vspheredb\DbObject\VCenterServer;
 use Icinga\Module\Vspheredb\MappedClass\ApiClassMap;
+use Icinga\Module\Vspheredb\Polling\ServerInfo;
 use Icinga\Module\Vspheredb\PropertySet\PropertySet;
 use Icinga\Module\Vspheredb\SelectSet\SelectSet;
 use Psr\Log\LoggerAwareTrait;
@@ -47,9 +48,6 @@ class Api
     /** @var SoapClient */
     private $soapClient;
 
-    /** @var VCenterServer */
-    private $vCenterServer;
-
     /**
      * Involved WSDL files
      *
@@ -88,10 +86,10 @@ class Api
     }
 
     /**
-     * @param VCenterServer $server
+     * @param ServerInfo $server
      * @return static
      */
-    public static function forServer(VCenterServer $server, LoggerInterface $logger)
+    public static function forServer(ServerInfo $server, LoggerInterface $logger)
     {
         $host = $server->get('host');
         if (preg_match('/^(.+?):(\d{1,5})$/', $host, $match)) {
@@ -108,8 +106,6 @@ class Api
             $port
         );
         $api->setLogger($logger);
-
-        $api->vCenterServer = $server;
 
         $curl = $api->curl();
 

@@ -6,6 +6,7 @@ use Icinga\Module\Vspheredb\Api;
 use Icinga\Module\Vspheredb\Db;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\DbObject\VCenterServer;
+use Icinga\Module\Vspheredb\Polling\ServerInfo;
 use Psr\Log\LoggerInterface;
 
 class VCenterInitialization
@@ -14,8 +15,9 @@ class VCenterInitialization
     {
         /** @var Db $connection */
         $connection = $server->getConnection();
+        $info = ServerInfo::fromServer($server);
         $vCenter = static::fromApi(
-            Api::forServer($server, $logger),
+            Api::forServer($info, $logger),
             $connection,
             $logger,
             $server->get('host')

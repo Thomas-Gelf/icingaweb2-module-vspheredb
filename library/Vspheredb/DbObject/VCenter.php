@@ -4,6 +4,7 @@ namespace Icinga\Module\Vspheredb\DbObject;
 
 use Icinga\Module\Vspheredb\Api;
 use Icinga\Module\Vspheredb\Db;
+use Icinga\Module\Vspheredb\Polling\ServerInfo;
 use Icinga\Module\Vspheredb\Util;
 use Icinga\Module\Vspheredb\VmwareDataType\ManagedObjectReference;
 use Psr\Log\LoggerInterface;
@@ -87,7 +88,10 @@ class VCenter extends BaseDbObject
             if ($logger === null) {
                 $logger = new NullLogger();
             }
-            $this->api = Api::forServer($this->getFirstServer(), $logger);
+            $this->api = Api::forServer(
+                ServerInfo::fromServer($this->getFirstServer()),
+                $logger
+            );
         }
 
         return $this->api;
