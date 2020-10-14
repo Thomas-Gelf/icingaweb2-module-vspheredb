@@ -31,7 +31,7 @@ class CompactEntityMetrics implements JsonSerializable
         foreach ($metric->value as $series) {
             $instance = $series->id->instance;
             if (! property_exists($metrics, $instance)) {
-                $metrics[$instance] = (object) [];
+                $metrics->$instance = (object) [];
             }
             $metrics->$instance->{$series->id->counterId} = array_map(function ($value) {
                 if ($value === '') {
