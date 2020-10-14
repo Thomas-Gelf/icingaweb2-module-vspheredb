@@ -41,6 +41,16 @@ class Util
         return (int) (1000 * $time->format('U.u'));
     }
 
+    /**
+     * DateTime for SOAP call
+     * @param $timestamp
+     * @return string
+     */
+    public static function makeDateTime($timestamp)
+    {
+        return gmdate('Y-m-d\TH:i:s\Z', $timestamp);
+    }
+
     public static function uuidToBin($uuid)
     {
         // 401daca3-42cf-bd89-94a1-463e448ea8d1

@@ -4,8 +4,8 @@ namespace Icinga\Module\Vspheredb\PerformanceData\PerformanceSet;
 
 use Icinga\Module\Vspheredb\MappedClass\PerfMetricId;
 use Icinga\Module\Vspheredb\MappedClass\PerfQuerySpec;
+use Icinga\Module\Vspheredb\Util;
 use Icinga\Module\Vspheredb\VmwareDataType\ManagedObjectReference;
-use function gmdate;
 
 abstract class PerformanceQuerySpecHelper
 {
@@ -26,8 +26,8 @@ abstract class PerformanceQuerySpecHelper
     ) {
         $duration = $interval * ($count);
         $now = floor(time() / $interval) * $interval;
-        $start = static::makeDateTime($now - $duration);
-        $end = static::makeDateTime($now);
+        $start = Util::makeDateTime($now - $duration);
+        $end = Util::makeDateTime($now);
 
         $specs = [];
         foreach ($objectWithInstances as $moref => $instances) {
@@ -50,14 +50,5 @@ abstract class PerformanceQuerySpecHelper
         }
 
         return $specs;
-    }
-
-    /**
-     * @param int $timestamp
-     * @return string '2017-12-13T18:10:00Z'
-     */
-    protected static function makeDateTime($timestamp)
-    {
-        return gmdate('Y-m-d\TH:i:s\Z', $timestamp);
     }
 }

@@ -323,7 +323,7 @@ class EventManager
 
         if ($this->lastEventTimestamp) {
             $filters['time'] = [
-                'beginTime' => $this->makeDateTime((int) floor($this->lastEventTimestamp / 1000))
+                'beginTime' => Util::makeDateTime((int) floor($this->lastEventTimestamp / 1000))
             ];
         }
 
@@ -353,11 +353,6 @@ class EventManager
                 ],
             ]
         ];
-    }
-
-    protected function makeDateTime($timestamp)
-    {
-        return gmdate('Y-m-d\TH:i:s\Z', $timestamp);
     }
 
     /**
