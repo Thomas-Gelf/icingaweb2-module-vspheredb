@@ -4,7 +4,7 @@ namespace Icinga\Module\Vspheredb\PerformanceData;
 
 use Icinga\Module\Vspheredb\Api;
 use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceQuerySpecHelper;
-use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceSet;
+use Icinga\Module\Vspheredb\Polling\PerfDataSet;
 use Psr\Log\LoggerInterface;
 use function array_chunk;
 use function count;
@@ -12,23 +12,23 @@ use function count;
 abstract class ChunkedPerfdataReader
 {
     /**
-     * @param PerformanceSet $performanceSet
+     * @param PerfDataSet $set
      * @param Api $api
      * @param LoggerInterface $logger
      * @return \Generator
      * @throws \Icinga\Exception\AuthenticationException
      * @throws \Icinga\Exception\NotFoundError
      */
-    public static function fetchSet(PerformanceSet $performanceSet, Api $api, LoggerInterface $logger)
+    public static function fetchSet(PerfDataSet $set, Api $api, LoggerInterface $logger)
     {
         $perf = $api->perfManager();
-        $setName = $performanceSet->getMeasurementName();
-        $vms = $performanceSet->getRequiredInstances();
-        $logger->info("Fetching $setName for " . count($vms) . ' VMs');
-        $counters = $performanceSet->getCounters();
-        foreach (array_chunk($vms, 100, true) as $chunk) {
+        $setName = $set->getMeasurementName();
+        $objects = $set->getRequiredInstances();
+        $logger->info("Fetching $setName for " . count($objects) . ' Objects');
+        $counters = $set->getCounters();
+        foreach (array_chunk($objects, 100, true) as $chunk) {
             $specs = PerformanceQuerySpecHelper::prepareQuerySpec(
-                $performanceSet->getObjectType(),
+                $set->getObjectType(),
                 $counters,
                 $chunk
             );

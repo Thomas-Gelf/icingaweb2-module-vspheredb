@@ -9,6 +9,7 @@ use Icinga\Module\Vspheredb\PerformanceData\InfluxDb\AsyncInfluxDbWriter;
 use Icinga\Module\Vspheredb\PerformanceData\InfluxDb\DataPoint;
 use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceSet;
 use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceSets;
+use Icinga\Module\Vspheredb\Polling\PerfDataSet;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
@@ -92,7 +93,8 @@ class InfluxDbStreamer implements LoggerAwareInterface
         /** @var PerfEntityMetricCSV $metric */
         $tags = $performanceSet->fetchObjectTags();
         $api = $this->vCenter->getApi($this->logger);
-        $metrics = ChunkedPerfdataReader::fetchSet($performanceSet, $api, $this->logger);
+        $set = PerfDataSet::fromPerformanceSet($this->vCenter->get('id'), $performanceSet);
+        $metrics = ChunkedPerfdataReader::fetchSet($set, $api, $this->logger);
         while ($this->pendingLines < $this->maxPendingLines && $metrics->valid()) {
             $metric = $metrics->current();
             $this->fetchedMetrics += count($metric->value);
