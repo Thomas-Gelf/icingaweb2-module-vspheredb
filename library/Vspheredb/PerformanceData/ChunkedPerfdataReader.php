@@ -2,7 +2,7 @@
 
 namespace Icinga\Module\Vspheredb\PerformanceData;
 
-use Icinga\Module\Vspheredb\DbObject\VCenter;
+use Icinga\Module\Vspheredb\Api;
 use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceQuerySpecHelper;
 use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceSet;
 use Psr\Log\LoggerInterface;
@@ -13,15 +13,15 @@ abstract class ChunkedPerfdataReader
 {
     /**
      * @param PerformanceSet $performanceSet
-     * @param VCenter $vCenter
+     * @param Api $api
      * @param LoggerInterface $logger
      * @return \Generator
      * @throws \Icinga\Exception\AuthenticationException
      * @throws \Icinga\Exception\NotFoundError
      */
-    public static function fetchSet(PerformanceSet $performanceSet, VCenter $vCenter, LoggerInterface $logger)
+    public static function fetchSet(PerformanceSet $performanceSet, Api $api, LoggerInterface $logger)
     {
-        $perf = $vCenter->getApi($logger)->perfManager();
+        $perf = $api->perfManager();
         $setName = $performanceSet->getMeasurementName();
         $vms = $performanceSet->getRequiredInstances();
         $logger->info("Fetching $setName for " . count($vms) . ' VMs');
