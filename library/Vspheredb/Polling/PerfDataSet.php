@@ -11,6 +11,9 @@ class PerfDataSet implements JsonSerializable
     protected $vCenterId;
 
     /** @var string */
+    protected $objectType;
+
+    /** @var string */
     protected $measurementName;
 
     /** @var array */
@@ -22,13 +25,20 @@ class PerfDataSet implements JsonSerializable
     /**
      * ServerInfo constructor.
      * @param int $vCenterId
+     * @param $objectType
      * @param string $measurementName
      * @param array $counters
      * @param array $requiredInstances
      */
-    public function __construct($vCenterId, $measurementName, array $counters, array $requiredInstances)
-    {
+    public function __construct(
+        $vCenterId,
+        $objectType,
+        $measurementName,
+        array $counters,
+        array $requiredInstances
+    ) {
         $this->vCenterId = $vCenterId;
+        $this->objectType = $objectType;
         $this->measurementName = $measurementName;
         $this->counters = $counters;
         $this->requiredInstances = $requiredInstances;
@@ -38,6 +48,7 @@ class PerfDataSet implements JsonSerializable
     {
         return new static(
             $object->vCenterId,
+            $object->objectType,
             $object->measurementName,
             (array) $object->counters,
             (array) $object->instances
@@ -48,6 +59,7 @@ class PerfDataSet implements JsonSerializable
     {
         return new static(
             $vCenterId,
+            $set->getObjectType(),
             $set->getMeasurementName(),
             $set->getCounters(),
             $set->getRequiredInstances()
@@ -60,6 +72,14 @@ class PerfDataSet implements JsonSerializable
     public function getVCenterId()
     {
         return $this->vCenterId;
+    }
+
+    /**
+     * @return string
+     */
+    public function getObjectType()
+    {
+        return $this->objectType;
     }
 
     /**
@@ -90,6 +110,7 @@ class PerfDataSet implements JsonSerializable
     {
         return ((object) [
             'vCenterId'       => $this->vCenterId,
+            'objectType'      => $this->getObjectType(),
             'measurementName' => $this->getMeasurementName(),
             'counters'        => $this->getCounters(),
             'instances'       => $this->getRequiredInstances(),
