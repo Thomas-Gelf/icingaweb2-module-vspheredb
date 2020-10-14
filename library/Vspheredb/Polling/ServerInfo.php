@@ -57,7 +57,7 @@ class ServerInfo implements JsonSerializable
 
     public function jsonSerialize()
     {
-        return json_encode($this->properties);
+        return (object) $this->properties;
     }
 
     public function getIdentifier()
