@@ -82,8 +82,8 @@ class PerfManager
             if ($object->reportsNotAuthenticated()) {
                 throw new AuthenticationException('Not authenticated');
             } else {
-                // TODO: no permission, throw error message!
-                throw new RuntimeException('Got no result');
+                // TODO: give more detais in the error message
+                throw new RuntimeException('Got invalid result, object has missing properties');
             }
         } else {
             return $object->toNewObject();

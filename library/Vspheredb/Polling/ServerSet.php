@@ -40,6 +40,14 @@ class ServerSet implements JsonSerializable
     }
 
     /**
+     * @return ServerInfo[]
+     */
+    public function getServers()
+    {
+        return $this->servers;
+    }
+
+    /**
      * @param VCenterServer[] $servers
      * @return static
      */
