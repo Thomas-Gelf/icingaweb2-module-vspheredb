@@ -5,11 +5,6 @@ namespace Icinga\Module\Vspheredb;
 use Icinga\Exception\AuthenticationException;
 use RuntimeException;
 
-/**
- * Class Api
- *
- * This is your main entry point when working with this library
- */
 trait LazyApiHelpers
 {
     /** @var object */
@@ -46,6 +41,7 @@ trait LazyApiHelpers
     public function eventManager()
     {
         if ($this->eventManager === null) {
+            /** @var Api $this */
             $this->eventManager = new EventManager($this, $this->logger);
         }
 
@@ -58,6 +54,7 @@ trait LazyApiHelpers
     public function perfManager()
     {
         if ($this->perfManager === null) {
+            /** @var Api $this */
             $this->perfManager = new PerfManager($this, $this->logger);
         }
 
@@ -70,6 +67,7 @@ trait LazyApiHelpers
     public function customFieldsManager()
     {
         if ($this->customFieldsManager === null) {
+            /** @var Api $this */
             $this->customFieldsManager = new CustomFieldsManager($this);
         }
 
@@ -88,6 +86,7 @@ trait LazyApiHelpers
     public function propertyCollector()
     {
         if ($this->propertyCollector === null) {
+            /** @var Api $this */
             $this->propertyCollector = new PropertyCollector($this);
         }
 
@@ -143,7 +142,7 @@ trait LazyApiHelpers
             if ($about->apiType === 'VirtualCenter') {
                 $this->binaryUuid = Util::uuidToBin($about->instanceUuid);
             } elseif ($about->apiType === 'HostAgent') {
-                /// NONO, TODO: bios uuid?!
+                // TODO: We MUST change this. bios uuid?!
                 $this->binaryUuid = Util::uuidToBin(md5($this->host));
             } else {
                 throw new RuntimeException(
