@@ -5,14 +5,17 @@ namespace Icinga\Module\Vspheredb\Daemon;
 use Exception;
 use Evenement\EventEmitterTrait;
 use gipfl\Protocol\JsonRpc\Connection;
+use gipfl\Protocol\JsonRpc\Notification;
+use gipfl\Protocol\JsonRpc\PacketHandler;
 use Icinga\Module\Vspheredb\LinuxUtils;
+use Icinga\Module\Vspheredb\PerformanceData\CompactEntityMetrics;
 use Icinga\Module\Vspheredb\Rpc\LogProxy;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
 use React\ChildProcess\Process;
 use React\EventLoop\LoopInterface;
 
-class TaskRunner
+class TaskRunner implements PacketHandler
 {
     use EventEmitterTrait;
     use LoggerAwareTrait;
@@ -72,6 +75,7 @@ class TaskRunner
         if ($this->logProxy) {
             $command->rpc()->setHandler($this->logProxy, 'logger');
         }
+        $command->rpc()->setHandler($this, 'perfData');
         $this->rpc = $command->rpc();
 
         return $command->run($this->loop);
@@ -120,6 +124,11 @@ class TaskRunner
 
     protected function checkRunningProcessHealth()
     {
+        if ($this->process === null) {
+            $this->health = [];
+            return;
+        }
+
         $info = [
             $this->pid => (object) [
                 'command' => preg_replace('/^exec /', '', $this->process->getCommand()),
@@ -145,6 +154,19 @@ class TaskRunner
                 $process->terminate(SIGKILL);
             }
         });
+    }
+
+
+    public function handle(Notification $notification)
+    {
+        switch ($notification->getMethod()) {
+            case 'perfData.result':
+                $metrics = new CompactEntityMetrics($notification->getParams());
+                $this->logger->notice('Perfdata: ' . print_r(, 1));
+                break;
+        }
+
+        return null;
     }
 
     public function __destruct()
