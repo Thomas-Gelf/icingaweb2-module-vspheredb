@@ -575,7 +575,7 @@ QUERY;
                 $vCenters = VCenter::loadAll($this->connection, null, 'id');
                 $vServers = VCenterServer::loadAll($this->connection, null, 'id');
                 if ($this->checkRequiredProcesses($vCenters, $vServers)) {
-                    $this->refreshReshRemoteServers($vServers);
+                    $this->refreshRemoteServers($vServers);
                     $this->refreshRequiredPerfData(); // Not here
                 }
             } else {
@@ -588,7 +588,7 @@ QUERY;
         }
     }
 
-    protected function refreshReshRemoteServers($vServers)
+    protected function refreshRemoteServers($vServers)
     {
         $set = new ServerSet();
         foreach ($vServers as $server) {
