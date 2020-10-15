@@ -136,7 +136,6 @@ class Api
 
     /**
      * @return DateTime
-     * @throws AuthenticationException
      */
     public function getCurrentTime()
     {
