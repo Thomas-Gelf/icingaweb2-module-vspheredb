@@ -162,16 +162,6 @@ trait LazyApiHelpers
         return $this->binaryUuid;
     }
 
-    /**
-     * @param $moRefId
-     * @return string
-     * @throws AuthenticationException
-     */
-    public function makeGlobalUuid($moRefId)
-    {
-        return sha1($this->getBinaryUuid() . $moRefId, true);
-    }
-
     public function __destruct()
     {
         unset($this->eventManager);
