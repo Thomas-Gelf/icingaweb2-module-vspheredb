@@ -4,6 +4,7 @@ namespace Icinga\Module\Vspheredb;
 
 use Error;
 use Exception;
+use gipfl\Cli\Screen;
 use InvalidArgumentException;
 
 trait CheckPluginHelper
@@ -14,6 +15,8 @@ trait CheckPluginHelper
     protected $sortingState;
 
     protected $sortingStateMap = [0, 1, 3, 2];
+
+    protected $outputScreen;
 
     /** @var array */
     protected $nameStateMap = [
@@ -29,6 +32,13 @@ trait CheckPluginHelper
         'WARNING',
         'CRITICAL',
         'UNKNOWN',
+    ];
+
+    protected $stateColors = [
+        'OK'       => 'green',
+        'WARNING'  => 'brown',
+        'CRITICAL' => 'red',
+        'UNKNOWN'  => 'purple',
     ];
 
     /** @var array */
@@ -88,9 +98,22 @@ trait CheckPluginHelper
     {
         $this->raiseState($state);
         $stateName = $this->getStateName($state);
-        $this->addMessage("[$stateName] $message");
+        $this->addMessage(sprintf(
+            '%s %s',
+            $this->getOutputScreen()->colorize("[$stateName]", $this->stateColors[$stateName]),
+            $message
+        ));
 
         return $this;
+    }
+
+    protected function getOutputScreen()
+    {
+        if ($this->outputScreen === null) {
+            $this->outputScreen = Screen::factory();
+        }
+
+        return $this->outputScreen;
     }
 
     /**
@@ -147,13 +170,13 @@ trait CheckPluginHelper
             if (array_key_exists($state, $this->stateNameMap)) {
                 return (int) $state;
             } else {
-                throw new InvalidArgumentException('%d is not a valid numeric state', $state);
+                throw new InvalidArgumentException(sprintf('%d is not a valid numeric state', $state));
             }
         } else {
             if (array_key_exists($state, $this->nameStateMap)) {
                 return $this->nameStateMap[$state];
             } else {
-                throw new InvalidArgumentException('%s is not a valid state name', $state);
+                throw new InvalidArgumentException(sprintf('%s is not a valid state name', $state));
             }
         }
     }
