@@ -2,12 +2,53 @@
 
 namespace Icinga\Module\Vspheredb\Hook;
 
+use Icinga\Module\Vspheredb\PerformanceData\InfluxDb\DataPoint;
 use Icinga\Web\Hook;
 use InvalidArgumentException;
 use ipl\Html\Form;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
+use React\EventLoop\LoopInterface;
 
-abstract class PerfDataReceiverHook
+abstract class PerfDataReceiverHook implements LoggerAwareInterface
 {
+    use LoggerAwareTrait;
+
+    /** @var LoopInterface */
+    protected $loop;
+
+    protected $settings = [];
+
+    protected $queue;
+
+    public static function initialize(LoopInterface $loop, $settings = [])
+    {
+        return (new static)->setLoop($loop)->setSettings($settings);
+    }
+
+    public function setLoop(LoopInterface $loop)
+    {
+        $this->loop = $loop;
+
+        return $this;
+    }
+
+    public function setSettings($settings)
+    {
+        $this->settings = (array) $settings;
+
+        return $this;
+    }
+
+    public function getSetting($name, $default = null)
+    {
+        if (array_key_exists($name, $this->settings)) {
+            return $this->settings[$name];
+        } else {
+            return $default;
+        }
+    }
+
     /**
      * @return string
      */
@@ -20,6 +61,31 @@ abstract class PerfDataReceiverHook
      * @return Form
      */
     abstract public function getConfigurationForm();
+
+    /**
+     * @var DataPoint[] $points
+     */
+    public function pushDataPoints($points)
+    {
+        if (empty($this->queue)) {
+            $this->queue[] = $points;
+        } elseif (count($this->queue[0]) + count($points) < 1000) {
+            $this->queue[0] = array_merge($this->queue[0], $points);
+        } else {
+            array_unshift($this->queue, $points);
+        }
+    }
+
+    /**
+     * Override this method, otherwise all data will be drpped
+     *
+     * @return bool
+     */
+    protected function processQueue()
+    {
+        array_pop($this->queue);
+        return true;
+    }
 
     public static function enum()
     {
