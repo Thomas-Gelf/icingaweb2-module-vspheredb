@@ -2,22 +2,17 @@
 
 namespace Icinga\Module\Vspheredb\Clicommands;
 
-/**
- * Health information for a vCenter or ESXi host
- */
+use Icinga\Module\Vspheredb\CheckPluginHelper;
+
 class HealthCommand extends Command
 {
+    use CheckPluginHelper;
+
     public function checkAction()
     {
-        $vCenter = $this->getVCenter();
-        $api = $vCenter->getApi($this->logger);
-        $time = $api->getCurrentTime()->format('U.u');
-        $timeDiff = microtime(true) - (float)$time;
-        if (abs($timeDiff) > 0.1) {
-            printf("%0.3fms Time difference detected\n", $timeDiff * 1000);
-        }
-
-        printf("Connected to a %s\n", $vCenter->getFullName());
-        echo $api->getVersionString();
+        $this->run(function () {
+            $this->addProblem('UNKNOWN', 'Please use `icingacli vspheredb check vcenterconnection`');
+            $this->addMessage('This command has never been documented and got removed with v1.2.0');
+        });
     }
 }

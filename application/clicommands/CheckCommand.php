@@ -25,6 +25,54 @@ class CheckCommand extends Command
     protected $db;
 
     /**
+     * This establishes a connection to the given vCenter
+     *
+     * USAGE
+     *
+     * icingacli vspheredb check vcenter [--vCenter <id>]
+     */
+    public function vcenterconnectionAction()
+    {
+        $this->run(function () {
+            $vCenter = $this->getVCenter();
+            $vCenterName = $vCenter->get('name');
+            $api = $vCenter->getApi($this->logger);
+            try {
+                $about = $api->getServiceInstance()->about;
+                $time = $api->getCurrentTime()->format('U.u');
+            } catch (\Exception $e) {
+                if (preg_match('/CURL ERROR: (.+)$/', $e->getMessage(), $match)) {
+                    $this->addProblem('CRITICAL', sprintf(
+                        'Failed to contact %s: %s',
+                        $vCenterName,
+                        $match[1]
+                    ));
+                } else {
+                    $this->addProblem('UNKNOWN', $e->getMessage());
+                }
+                return;
+            }
+            $timeDiff = microtime(true) - (float)$time;
+            if (abs($timeDiff) > 0.1) {
+                $this->raiseState('warning');
+                if (abs($timeDiff) > 3) {
+                    $this->raiseState('critical');
+                }
+                printf("%0.3fms Time difference detected\n", $timeDiff * 1000);
+            }
+
+            echo sprintf(
+                "%s: Connected to %s on %s, api=%s (%s)\n",
+                $vCenterName,
+                $about->fullName,
+                $about->osType,
+                $about->apiType,
+                $about->licenseProductName
+            );
+        });
+    }
+
+    /**
      * Check Host Health
      *
      * USAGE
