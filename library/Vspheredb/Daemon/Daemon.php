@@ -14,9 +14,6 @@ use Icinga\Module\Vspheredb\Db\Migrations;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\DbObject\VCenterServer;
 use Icinga\Module\Vspheredb\LinuxUtils;
-use Icinga\Module\Vspheredb\Polling\RequiredPerfData;
-use Icinga\Module\Vspheredb\Polling\ServerInfo;
-use Icinga\Module\Vspheredb\Polling\ServerSet;
 use Icinga\Module\Vspheredb\Rpc\LogProxy;
 use Icinga\Module\Vspheredb\Util;
 use Ramsey\Uuid\Uuid;
@@ -575,8 +572,7 @@ QUERY;
                 $vCenters = VCenter::loadAll($this->connection, null, 'id');
                 $vServers = VCenterServer::loadAll($this->connection, null, 'id');
                 if ($this->checkRequiredProcesses($vCenters, $vServers)) {
-                    $this->refreshRemoteServers($vServers);
-                    $this->refreshRequiredPerfData(); // Not here
+                    $this->worker->refreshServerList($vServers);
                 }
             } else {
                 $this->stopRunners();
@@ -585,51 +581,6 @@ QUERY;
             $this->setDaemonStatus('Failed to refresh server list', 'error');
             $this->logger->error($e->getMessage());
             $this->setState('failed');
-        }
-    }
-
-    protected function refreshRemoteServers($vServers)
-    {
-        $set = new ServerSet();
-        foreach ($vServers as $server) {
-            if (isset($this->running[$server->get('id')])) {
-                $set->addServer(ServerInfo::fromServer($server));
-            }
-        }
-
-        $this->worker->rpc()
-            ->request('vspheredb.setServers', $set)
-            ->then(function ($result) {
-                $this->logger->notice('Worker confirmed new server list');
-            }, function (Exception $e) {
-                $this->logger->error(
-                    'Failed to update worker server list' . $e->getMessage()
-                );
-            });
-    }
-
-    protected function refreshRequiredPerfData()
-    {
-        if (! $this->connection) {
-            return;
-        }
-
-        try {
-            $required = RequiredPerfData::fromDb($this->connection);
-            $this->worker->rpc()
-                ->request('vspheredb.setRequiredPerfData', $required)
-                ->then(function ($result) {
-                    $this->logger->notice('Worker confirmed new required PerfData');
-                }, function (Exception $e) {
-                    $this->logger->error(
-                        'Failed to refresh required PerfData: ' . $e->getMessage()
-                    );
-                });
-
-        } catch (Exception $e) {
-            $this->logger->error(
-                'Failed to initiate PerfData refresh: ' . $e->getMessage()
-            );
         }
     }
 }

@@ -9,9 +9,13 @@ use gipfl\Protocol\JsonRpc\Notification;
 use gipfl\Protocol\JsonRpc\PacketHandler;
 use Icinga\Module\Vspheredb\Db;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
+use Icinga\Module\Vspheredb\DbObject\VCenterServer;
 use Icinga\Module\Vspheredb\LinuxUtils;
 use Icinga\Module\Vspheredb\PerformanceData\CompactEntityMetrics;
 use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceSets;
+use Icinga\Module\Vspheredb\Polling\RequiredPerfData;
+use Icinga\Module\Vspheredb\Polling\ServerInfo;
+use Icinga\Module\Vspheredb\Polling\ServerSet;
 use Icinga\Module\Vspheredb\Rpc\LogProxy;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
@@ -92,6 +96,15 @@ class TaskRunner implements PacketHandler
         $this->rpc = $command->rpc();
 
         return $command->run($this->loop);
+    }
+
+    /**
+     * @param VCenterServer[] $vServers
+     */
+    public function refreshServerList($vServers)
+    {
+        $this->refreshRemoteServers($vServers);
+        $this->refreshRequiredPerfData(); // Not here
     }
 
     /**
@@ -214,6 +227,51 @@ class TaskRunner implements PacketHandler
         } catch (\Throwable $e) {
             $this->logger->error($e->getMessage() . $e->getTraceAsString());
             return;
+        }
+    }
+
+    protected function refreshRemoteServers($vServers)
+    {
+        $set = new ServerSet();
+        foreach ($vServers as $server) {
+            if (isset($this->running[$server->get('id')])) {
+                $set->addServer(ServerInfo::fromServer($server));
+            }
+        }
+
+        $this->rpc
+            ->request('vspheredb.setServers', $set)
+            ->then(function ($result) {
+                $this->logger->notice('Worker confirmed new server list');
+            }, function (Exception $e) {
+                $this->logger->error(
+                    'Failed to update worker server list' . $e->getMessage()
+                );
+            });
+    }
+
+    protected function refreshRequiredPerfData()
+    {
+        if (! $this->db) {
+            return;
+        }
+
+        try {
+            $required = RequiredPerfData::fromDb($this->db);
+            $this->rpc
+                ->request('vspheredb.setRequiredPerfData', $required)
+                ->then(function ($result) {
+                    $this->logger->notice('Worker confirmed new required PerfData');
+                }, function (Exception $e) {
+                    $this->logger->error(
+                        'Failed to refresh required PerfData: ' . $e->getMessage()
+                    );
+                });
+
+        } catch (Exception $e) {
+            $this->logger->error(
+                'Failed to initiate PerfData refresh: ' . $e->getMessage()
+            );
         }
     }
 
