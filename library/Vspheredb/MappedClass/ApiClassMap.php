@@ -56,6 +56,8 @@ class ApiClassMap
             'NoPermission'         => NoPermission::class,
             'SecurityError'        => SecurityError::class,
             'LocalizedMethodFault' => LocalizedMethodFault::class,
+            'ServiceContent'       => ServiceContent::class,
+            'AboutInfo'            => AboutInfo::class,
 
             // 'ManagedObjectNotFoundFault' => "$base\\ManagedObjectNotFoundFault",
             // 'AlarmEvent'              => "$base\\AlarmEvent",
