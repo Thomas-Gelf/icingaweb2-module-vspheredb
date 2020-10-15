@@ -2,6 +2,7 @@
 
 namespace Icinga\Module\Vspheredb\DbObject;
 
+use Icinga\Exception\NotFoundError;
 use Icinga\Module\Vspheredb\Api;
 use Icinga\Module\Vspheredb\Db;
 use Icinga\Module\Vspheredb\Polling\ServerInfo;
@@ -108,10 +109,28 @@ class VCenter extends BaseDbObject
             $db->select()
                 ->from('vcenter_server')
                 ->where('vcenter_id = ?', $this->get('id'))
+                ->where('enabled = ?', 'y')
                 ->limit(1)
         );
-
-        return VCenterServer::loadWithAutoIncId($serverId, $this->getConnection());
+        if ($serverId) {
+            return VCenterServer::loadWithAutoIncId($serverId, $this->getConnection());
+        } else {
+            $serverId = $db->fetchOne(
+                $db->select()
+                    ->from('vcenter_server')
+                    ->where('vcenter_id = ?', $this->get('id'))
+                    ->limit(1)
+            );
+            if ($serverId) {
+                throw new NotFoundError(
+                    'All server connections configured for this vCenter have been disabled'
+                );
+            } else {
+                throw new NotFoundError(
+                    'Found no server for vCenterId=' . $this->get('id')
+                );
+            }
+        }
     }
 
     public function makeBinaryGlobalUuid($moRefId)
