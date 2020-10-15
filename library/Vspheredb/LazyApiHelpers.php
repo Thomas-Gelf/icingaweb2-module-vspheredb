@@ -3,6 +3,7 @@
 namespace Icinga\Module\Vspheredb;
 
 use Icinga\Exception\AuthenticationException;
+use Icinga\Module\Vspheredb\MappedClass\ServiceContent;
 use RuntimeException;
 
 trait LazyApiHelpers
@@ -74,6 +75,9 @@ trait LazyApiHelpers
         return $this->customFieldsManager;
     }
 
+    /**
+     * @return bool
+     */
     public function hasCustomFieldsManager()
     {
         return $this->customFieldsManager !== null
@@ -98,13 +102,15 @@ trait LazyApiHelpers
      *
      * This is a stdClass for now, might become a dedicated class
      *
-     * @return object
-     * @throws AuthenticationException
+     * Required Privileges: System.Anonymous
+     *
+     * @return ServiceContent
      */
     public function getServiceInstance()
     {
         if ($this->serviceInstance === null) {
-            $this->serviceInstance = $this->fetchServiceInstance();
+            /** @var Api $this */
+            $this->serviceInstance = $this->retrieveServiceContent();
         }
 
         return $this->serviceInstance;

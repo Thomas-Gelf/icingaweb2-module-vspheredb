@@ -6,9 +6,11 @@ use DateTime;
 use Exception;
 use Icinga\Exception\AuthenticationException;
 use Icinga\Module\Vspheredb\MappedClass\ApiClassMap;
+use Icinga\Module\Vspheredb\MappedClass\ServiceContent;
 use Icinga\Module\Vspheredb\Polling\ServerInfo;
 use Icinga\Module\Vspheredb\PropertySet\PropertySet;
 use Icinga\Module\Vspheredb\SelectSet\SelectSet;
+use Icinga\Module\Vspheredb\VmwareDataType\ManagedObjectReference;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
 use SoapVar;
@@ -297,10 +299,9 @@ class Api
      *
      * @see getServiceInstance()
      *
-     * @return mixed
-     * @throws AuthenticationException
+     * @return ServiceContent
      */
-    protected function fetchServiceInstance()
+    protected function retrieveServiceContent()
     {
         $result = $this->soapCall(
             'RetrieveServiceContent',
@@ -312,9 +313,7 @@ class Api
 
     protected function makeBaseServiceInstanceParam()
     {
-        $param = array(
-            $this->makeVar('ServiceInstance', 'ServiceInstance')
-        );
+        $param = [$this->makeVar('ServiceInstance', 'ServiceInstance')];
 
         return new SoapVar($param, SOAP_ENC_OBJECT);
     }
@@ -351,6 +350,7 @@ class Api
     public function logout()
     {
         $request = array(
+            // ManagedObjectReference: _ = SessionManager, type = SessionManager
             '_this' => $this->getServiceInstance()->sessionManager
         );
         try {
@@ -369,6 +369,7 @@ class Api
      */
     protected function makeObjectSet(SelectSet $selectSet, $base = null)
     {
+        /** @var ManagedObjectReference $base _ = group-d1, type = Folder */
         if ($base === null) {
             $base = $this->getServiceInstance()->rootFolder;
         }
