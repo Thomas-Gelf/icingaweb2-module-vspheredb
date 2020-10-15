@@ -99,6 +99,7 @@ trait LazyApiHelpers
      * This is a stdClass for now, might become a dedicated class
      *
      * @return object
+     * @throws AuthenticationException
      */
     public function getServiceInstance()
     {

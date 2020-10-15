@@ -5,7 +5,6 @@ namespace Icinga\Module\Vspheredb;
 use DateTime;
 use Exception;
 use Icinga\Exception\AuthenticationException;
-use Icinga\Module\Vspheredb\DbObject\VCenterServer;
 use Icinga\Module\Vspheredb\MappedClass\ApiClassMap;
 use Icinga\Module\Vspheredb\Polling\ServerInfo;
 use Icinga\Module\Vspheredb\PropertySet\PropertySet;
@@ -188,6 +187,7 @@ class Api
      * @param $method
      * @return mixed
      * @throws AuthenticationException
+     * @throws \SoapFault
      */
     public function soapCall($method)
     {
@@ -231,6 +231,7 @@ class Api
      * Lazy-instantiation of our SoapClient
      *
      * @return SoapClient
+     * @throws \SoapFault
      */
     protected function soapClient()
     {
@@ -323,6 +324,7 @@ class Api
      *
      * This will retrieve a session cookie and pass it with subsequent requests
      * @throws AuthenticationException
+     * @throws \SoapFault
      */
     public function login()
     {
