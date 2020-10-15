@@ -21,73 +21,73 @@ class ServiceContent
     /** @var AboutInfo */
     public $about;
 
-    /** @var ManagedObjectReference to a HostLocalAccountManager */
+    /** @var ManagedObjectReference|null to a HostLocalAccountManager */
     public $accountManager;
 
-    /** @var ManagedObjectReference to a AlarmManager */
+    /** @var ManagedObjectReference|null to a AlarmManager */
     public $alarmManager;
 
-    /** @var ManagedObjectReference to a AuthorizationManager */
+    /** @var ManagedObjectReference|null to a AuthorizationManager */
     public $authorizationManager;
 
-    /** @var ManagedObjectReference to a CertificateManager - since vSphere API 6.0 */
+    /** @var ManagedObjectReference|null to a CertificateManager - since vSphere API 6.0 */
     public $certificateManager;
 
-    /** @var ManagedObjectReference to a ClusterProfileManager */
+    /** @var ManagedObjectReference|null to a ClusterProfileManager */
     public $clusterProfileManager;
 
-    /** @var ManagedObjectReference to a ProfileComplianceManager */
+    /** @var ManagedObjectReference|null to a ProfileComplianceManager */
     public $complianceManager;
 
-    /** @var ManagedObjectReference to a CustomFieldsManager */
+    /** @var ManagedObjectReference|null to a CustomFieldsManager */
     public $customFieldsManager;
 
-    /** @var ManagedObjectReference to a CustomizationSpecManager */
+    /** @var ManagedObjectReference|null to a CustomizationSpecManager */
     public $customizationSpecManager;
 
-    /** @var ManagedObjectReference to a CustomizationSpecManager */
+    /** @var ManagedObjectReference|null to a CustomizationSpecManager */
     public $datastoreNamespaceManager;
 
-    /** @var ManagedObjectReference to a DiagnosticManager */
+    /** @var ManagedObjectReference|null to a DiagnosticManager */
     public $diagnosticManager;
 
-    /** @var ManagedObjectReference to a DistributedVirtualSwitchManager */
+    /** @var ManagedObjectReference|null to a DistributedVirtualSwitchManager */
     public $dvSwitchManager;
 
-    /** @var ManagedObjectReference to a EventManager */
+    /** @var ManagedObjectReference|null to a EventManager */
     public $eventManager;
 
-    /** @var ManagedObjectReference to a ExtensionManager */
+    /** @var ManagedObjectReference|null to a ExtensionManager */
     public $extensionManager;
 
-    /** @var ManagedObjectReference to a FileManager */
+    /** @var ManagedObjectReference|null to a FileManager */
     public $fileManager;
 
-    /** @var ManagedObjectReference to a GuestOperationsManager */
+    /** @var ManagedObjectReference|null to a GuestOperationsManager */
     public $guestOperationsManager;
 
-    /** @var ManagedObjectReference to a HostProfileManager */
+    /** @var ManagedObjectReference|null to a HostProfileManager */
     public $hostProfileManager;
 
-    /** @var ManagedObjectReference to a IoFilterManager - since vSphere API 6.0 */
+    /** @var ManagedObjectReference|null to a IoFilterManager - since vSphere API 6.0 */
     public $ioFilterManager;
 
-    /** @var ManagedObjectReference to a IpPoolManager */
+    /** @var ManagedObjectReference|null to a IpPoolManager */
     public $ipPoolManager;
 
-    /** @var ManagedObjectReference to a LicenseManager */
+    /** @var ManagedObjectReference|null to a LicenseManager */
     public $licenseManager;
 
-    /** @var ManagedObjectReference to a LocalizationManager */
+    /** @var ManagedObjectReference|null to a LocalizationManager */
     public $localizationManager;
 
-    /** @var ManagedObjectReference to a OverheadMemoryManager - since vSphere API 6.0 */
+    /** @var ManagedObjectReference|null to a OverheadMemoryManager - since vSphere API 6.0 */
     public $overheadMemoryManager;
 
-    /** @var ManagedObjectReference to a OvfManager */
+    /** @var ManagedObjectReference|null to a OvfManager */
     public $ovfManager;
 
-    /** @var ManagedObjectReference to a PerformanceManager */
+    /** @var ManagedObjectReference|null to a PerformanceManager */
     public $perfManager;
 
     /** @var ManagedObjectReference to a PropertyCollector */
@@ -96,45 +96,45 @@ class ServiceContent
     /** @var ManagedObjectReference to a Folder */
     public $rootFolder;
 
-    /** @var ManagedObjectReference to a ScheduledTaskManager */
+    /** @var ManagedObjectReference|null to a ScheduledTaskManager */
     public $scheduledTaskManager;
 
-    /** @var ManagedObjectReference to a SearchIndex */
+    /** @var ManagedObjectReference|null to a SearchIndex */
     public $searchIndex;
 
-    /** @var ManagedObjectReference to a ServiceManager */
+    /** @var ManagedObjectReference|null to a ServiceManager */
     public $serviceManager;
 
-    /** @var ManagedObjectReference to a SessionManager */
+    /** @var ManagedObjectReference|null to a SessionManager */
     public $sessionManager;
 
-    /** @var ManagedObjectReference to a OptionManager */
+    /** @var ManagedObjectReference|null to a OptionManager */
     public $setting;
 
-    /** @var ManagedObjectReference to a HostSnmpSystem */
+    /** @var ManagedObjectReference|null to a HostSnmpSystem */
     public $snmpSystem;
 
-    /** @var ManagedObjectReference to a StorageResourceManager */
+    /** @var ManagedObjectReference|null to a StorageResourceManager */
     public $storageResourceManager;
 
-    /** @var ManagedObjectReference to a TaskManager */
+    /** @var ManagedObjectReference|null to a TaskManager */
     public $taskManager;
 
-    /** @var ManagedObjectReference to a UserDirectory */
+    /** @var ManagedObjectReference|null to a UserDirectory */
     public $userDirectory;
 
-    /** @var ManagedObjectReference to a ViewManager */
+    /** @var ManagedObjectReference|null to a ViewManager */
     public $viewManager;
 
-    /** @var ManagedObjectReference to a VirtualDiskManager */
+    /** @var ManagedObjectReference|null to a VirtualDiskManager */
     public $virtualDiskManager;
 
-    /** @var ManagedObjectReference to a VirtualizationManager */
+    /** @var ManagedObjectReference|null to a VirtualizationManager */
     public $virtualizationManager;
 
-    /** @var ManagedObjectReference to a VirtualMachineCompatibilityChecker */
+    /** @var ManagedObjectReference|null to a VirtualMachineCompatibilityChecker */
     public $vmCompatibilityChecker;
 
-    /** @var ManagedObjectReference to a VirtualMachineProvisioningChecker */
+    /** @var ManagedObjectReference|null to a VirtualMachineProvisioningChecker */
     public $vmProvisioningChecker;
 }
