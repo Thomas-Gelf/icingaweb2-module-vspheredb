@@ -58,6 +58,8 @@ class ApiClassMap
             'LocalizedMethodFault' => LocalizedMethodFault::class,
             'ServiceContent'       => ServiceContent::class,
             'AboutInfo'            => AboutInfo::class,
+            'SessionManager'       => SessionManager::class,
+            'UserSession'          => UserSession::class,
 
             // 'ManagedObjectNotFoundFault' => "$base\\ManagedObjectNotFoundFault",
             // 'AlarmEvent'              => "$base\\AlarmEvent",
