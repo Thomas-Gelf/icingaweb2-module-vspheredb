@@ -4,8 +4,10 @@ namespace Icinga\Module\Vspheredb;
 
 use DateTime;
 use Exception;
+use http\Exception\RuntimeException;
 use Icinga\Exception\AuthenticationException;
 use Icinga\Module\Vspheredb\MappedClass\ApiClassMap;
+use Icinga\Module\Vspheredb\MappedClass\RetrieveResult;
 use Icinga\Module\Vspheredb\MappedClass\ServiceContent;
 use Icinga\Module\Vspheredb\Polling\ServerInfo;
 use Icinga\Module\Vspheredb\PropertySet\PropertySet;
@@ -392,6 +394,41 @@ class Api
             'propSet'   => $propSet->toArray(),
             'objectSet' => $this->makeObjectSet($selectSet)
         ];
+    }
+
+    /**
+     * TODO: Can be used for mass requests once we deal with the token in the RetrieveResult
+     *
+     * @param ManagedObjectReference $object
+     * @param array|null $properties
+     * @return RetrieveResult
+     */
+    public function retrieveProperties(ManagedObjectReference $object, $properties = null)
+    {
+        $specSet = [
+            '_this'   => $this->getServiceInstance()->propertyCollector,
+            'specSet' => [
+                'propSet' => [
+                    'type'    => $object->type,
+                    'all'     => $properties === null,
+                    'pathSet' => $properties
+                ],
+                'objectSet' => [
+                    'obj'  => $object,
+                    'skip' => false
+                ]
+            ],
+            'options' => null
+        ];
+
+        $result = $this->soapClient->__call('RetrievePropertiesEx', [$specSet]);
+        if (! isset($result->returnval)) {
+            // Should not be reached, as Authentication or Connection Errors are thrown beforehand
+            throw new RuntimeException('Got no returnval for RetrievePropertiesEx');
+        }
+        assert($result->returnval instanceof RetrieveResult);
+
+        return $result->returnval;
     }
 
     /**
