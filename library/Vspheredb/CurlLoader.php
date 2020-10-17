@@ -225,6 +225,16 @@ class CurlLoader extends EventEmitter
         return $this->request('post', $url, $body, $headers);
     }
 
+    public function getCookies()
+    {
+        return $this->cookies;
+    }
+
+    public function getUsername()
+    {
+        return $this->user;
+    }
+
     /**
      * @param $method
      * @param $url
