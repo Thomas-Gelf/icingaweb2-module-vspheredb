@@ -10,26 +10,6 @@ class ApiClassMap
 {
     protected static $map;
 
-    public static function createInstanceForObjectContent(ObjectContent $content)
-    {
-        $map = static::getMap();
-        $type = $content->obj->type;
-        if (isset($map[$type])) {
-            $class = $map[$type];
-            $obj = new $class;
-            foreach ($content->propSet as $dynamicProperty) {
-                $obj->{$dynamicProperty->name} = $dynamicProperty->val;
-            }
-
-            return $obj;
-        } else {
-            throw new RuntimeException(sprintf(
-                'Type "%s" has no class mapping',
-                $type
-            ));
-        }
-    }
-
     public static function getMap()
     {
         if (self::$map === null) {
@@ -37,6 +17,24 @@ class ApiClassMap
         }
 
         return self::$map;
+    }
+
+    public static function hasTypeMap($type)
+    {
+        return isset(static::getMap()[$type]);
+    }
+
+    public static function requireTypeMap($type)
+    {
+        $map = static::getMap();
+        if (isset($map[$type])) {
+            return $map[$type];
+        }
+
+        throw new RuntimeException(sprintf(
+            'Type "%s" has no class mapping',
+            $type
+        ));
     }
 
     public static function prepareMap()
