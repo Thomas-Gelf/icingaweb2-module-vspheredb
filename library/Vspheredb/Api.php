@@ -6,6 +6,7 @@ use DateTime;
 use Exception;
 use http\Exception\RuntimeException;
 use Icinga\Exception\AuthenticationException;
+use Icinga\Module\Vspheredb\Api\WsdlLoader;
 use Icinga\Module\Vspheredb\MappedClass\ApiClassMap;
 use Icinga\Module\Vspheredb\MappedClass\RetrieveResult;
 use Icinga\Module\Vspheredb\MappedClass\ServiceContent;
@@ -51,26 +52,8 @@ class Api
     /** @var SoapClient */
     private $soapClient;
 
-    /**
-     * Involved WSDL files
-     *
-     * We'll always fetch and store them in case they are not available. Pay
-     * attention when modifying this list, we'll use the first one to start
-     * with when connecting to the SOAP API
-     *
-     * @var array
-     */
-    private $wsdlFiles = [
-        'vimService.wsdl',
-        'vim.wsdl',
-        'core-types.xsd',
-        'query-types.xsd',
-        'query-messagetypes.xsd',
-        'reflect-types.xsd',
-        'reflect-messagetypes.xsd',
-        'vim-types.xsd',
-        'vim-messagetypes.xsd',
-    ];
+    /** @var WsdlLoader */
+    private $wsdlLoader;
 
     /**
      * Api constructor.
@@ -90,6 +73,7 @@ class Api
 
     /**
      * @param ServerInfo $server
+     * @param LoggerInterface $logger
      * @return static
      */
     public static function forServer(ServerInfo $server, LoggerInterface $logger)
@@ -110,6 +94,7 @@ class Api
         );
         $api->setLogger($logger);
 
+        $api->prepareCacheDir();
         $curl = $api->curl();
 
         if ($port !== null) {
@@ -132,8 +117,19 @@ class Api
                 $curl->disableSslHostVerification();
             }
         }
+        $api->prepareWsdlLoader();
 
         return $api;
+    }
+
+    protected function prepareCacheDir()
+    {
+        $this->cacheDir = SafeCacheDir::getSubDirectory($this->host);
+    }
+
+    protected function prepareWsdlLoader()
+    {
+        $this->wsdlLoader = new WsdlLoader($this->cacheDir, $this->curl(), $this->logger);
     }
 
     /**
@@ -239,60 +235,35 @@ class Api
     protected function soapClient()
     {
         if ($this->soapClient === null) {
-            $this->prepareWsdl();
-            $wsdlFile = $this->cacheDir() . '/' . $this->wsdlFiles[0];
-            $features = SOAP_SINGLE_ELEMENT_ARRAYS | SOAP_USE_XSI_ARRAY_TYPE;
-            $options = [
-                'trace'              => true,
-                'location'           => $this->makeLocation(),
-                'exceptions'         => true,
-                'connection_timeout' => 10,
-                'classmap'           => ApiClassMap::getMap(),
-                'features'           => $features,
-                'cache_wsdl'         => WSDL_CACHE_NONE,
-                'compression'        => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP,
-            ];
-
-            try {
-                $soap = new SoapClient($wsdlFile, $options);
-            } catch (Exception $e) {
-                // e.g.: SOAP-ERROR: Parsing Schema: can't import schema from '/tmp/[..]/vim-types.xsd
-                $this->flushWsdlCache();
-
-                throw $e;
-            }
-            $soap->setCurl($this->curl())->setLogger($this->logger);
-            $this->soapClient = $soap;
+            $this->prepareSoapClient();
         }
 
         return $this->soapClient;
     }
 
-    /**
-     * Make sure all our WSDL files are in place, fetch missing ones
-     */
-    protected function prepareWsdl()
+    protected function prepareSoapClient()
     {
-        $curl = $this->curl();
-        $dir = $this->cacheDir();
-        foreach ($this->wsdlFiles as $file) {
-            if (! file_exists("$dir/$file")) {
-                $this->logger->info("Loading sdk/$file");
-                $wsdl = $curl->get($curl->url("sdk/$file"));
-                file_put_contents("$dir/$file", $wsdl);
-            }
-        }
-    }
+        $this->wsdlLoader->prepareWsdl();
 
-    protected function flushWsdlCache()
-    {
-        $dir = $this->cacheDir();
-        $this->logger->info("Flushing WSDL Cache in $dir");
-        foreach ($this->wsdlFiles as $file) {
-            if (file_exists("$dir/$file")) {
-                unlink("$dir/$file");
-            }
+        try {
+            $soap = new SoapClient($this->wsdlLoader->getInitialWsdlFile(), [
+                'trace'              => true,
+                'location'           => $this->makeLocation(),
+                'exceptions'         => true,
+                'connection_timeout' => 10,
+                'classmap'           => ApiClassMap::getMap(),
+                'features'           => SOAP_SINGLE_ELEMENT_ARRAYS | SOAP_USE_XSI_ARRAY_TYPE,
+                'cache_wsdl'         => WSDL_CACHE_NONE,
+                'compression'        => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP,
+            ]);
+        } catch (Exception $e) {
+            // e.g.: SOAP-ERROR: Parsing Schema: can't import schema from '/tmp/[..]/vim-types.xsd
+            $this->wsdlLoader->flushWsdlCache();
+
+            throw $e;
         }
+        $soap->setCurl($this->curl())->setLogger($this->logger);
+        $this->soapClient = $soap;
     }
 
     /**
