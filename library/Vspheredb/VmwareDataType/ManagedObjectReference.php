@@ -18,6 +18,11 @@ class ManagedObjectReference
         $this->type = $type;
     }
 
+    public function getLogName()
+    {
+        return $this->type . '[' . $this->_ . ']';
+    }
+
     public function __toString()
     {
         if (true) {
