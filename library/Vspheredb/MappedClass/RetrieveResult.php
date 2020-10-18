@@ -3,12 +3,13 @@
 namespace Icinga\Module\Vspheredb\MappedClass;
 
 /***
+ * Result of RetrievePropertiesEx and ContinueRetrievePropertiesEx
  *
  * https://www.vmware.com/support/developer/converter-sdk/conv61_apireference/vmodl.query.PropertyCollector.RetrieveResult.html
  */
 class RetrieveResult
 {
-    /** @var ObjectContent[] */
+    /** @var ObjectContent[] retrieved objects */
     public $objects;
 
     /**
@@ -25,8 +26,26 @@ class RetrieveResult
      */
     public $token;
 
+    /**
+     * @return bool
+     */
     public function hasMoreResults()
     {
         return $this->token !== null;
+    }
+
+    public function getObjects()
+    {
+        if (empty($this->objects)) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($this->objects as $objectContent) {
+            // TODO: eventually add a flag dealing with $objectContent->hasMissingProperties()
+            $result[] = $objectContent->toNewObject();
+        }
+
+        return $result;
     }
 }
