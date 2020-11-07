@@ -7,9 +7,9 @@ use gipfl\Web\Table\NameValueTable;
 use Icinga\Date\DateFormatter;
 use Icinga\Module\Vspheredb\DbObject\HostSystem;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
+use Icinga\Module\Vspheredb\Web\Widget\BiosInfo;
 use Icinga\Module\Vspheredb\Web\Widget\Link\Html5UiLink;
 use Icinga\Module\Vspheredb\Web\Widget\Link\MobLink;
-use Icinga\Module\Vspheredb\Web\Widget\SpectreMelddownBiosInfo;
 use Icinga\Module\Vspheredb\Web\Widget\SubTitle;
 use ipl\Html\Html;
 
@@ -39,7 +39,7 @@ class HostSystemInfoTable extends NameValueTable
             $this->translate('Vendor') => $host->get('sysinfo_vendor'),
             $this->translate('Model') =>  $host->get('sysinfo_model'),
             $this->translate('Service Tag')  => $this->getFormattedServiceTag($host),
-            $this->translate('BIOS Version') => new SpectreMelddownBiosInfo($host),
+            $this->translate('BIOS Version') => new BiosInfo($host),
             $this->translate('Uptime')       => DateFormatter::formatDuration($host->quickStats()->get('uptime')),
             $this->translate('System UUID')  => Html::tag('pre', $host->get('sysinfo_uuid')),
         ]);

@@ -5,11 +5,11 @@ namespace Icinga\Module\Vspheredb\Web\Table\Objects;
 use gipfl\IcingaWeb2\Link;
 use Icinga\Date\DateFormatter;
 use Icinga\Module\Vspheredb\DbObject\HostSystem;
+use Icinga\Module\Vspheredb\Web\Widget\BiosInfo;
 use Icinga\Module\Vspheredb\Web\Widget\CpuUsage;
 use Icinga\Module\Vspheredb\Web\Widget\MemoryUsage;
 use Icinga\Module\Vspheredb\Web\Widget\PowerStateRenderer;
 use Icinga\Module\Vspheredb\Web\Widget\ServiceTagRenderer;
-use Icinga\Module\Vspheredb\Web\Widget\SpectreMelddownBiosInfo;
 use Icinga\Module\Vspheredb\Format;
 
 class HostsTable extends ObjectsTable
@@ -122,7 +122,7 @@ class HostsTable extends ObjectsTable
                     'bios_release_date' => $row->bios_release_date,
                 ]);
 
-                return new SpectreMelddownBiosInfo($host);
+                return new BiosInfo($host);
             }),
             $this->createColumn('uptime', $this->translate('Uptime'), [
                 'uptime' => 'hqs.uptime',

@@ -6,6 +6,9 @@ use Icinga\Module\Vspheredb\DbObject\HostSystem;
 use ipl\Html\BaseHtmlElement;
 use ipl\Html\Html;
 
+/**
+ * @deprecated
+ */
 class SpectreMelddownBiosInfo extends BaseHtmlElement
 {
     protected $tag = 'span';
