@@ -24,7 +24,7 @@ class HostHardwareInfoTable extends NameValueTable
 
     protected function assemble()
     {
-        $this->prepend(new SubTitle($this->translate('Hardware Information'), 'help'));
+        $this->prepend(new SubTitle($this->translate('Hardware Information'), 'th-thumb-empty'));
         $host = $this->host;
         $this->addNameValuePairs([
             $this->translate('CPU') => [
