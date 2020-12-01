@@ -5,16 +5,16 @@ namespace Icinga\Module\Vspheredb\Clicommands;
 use Exception;
 use gipfl\Cli\Tty;
 use gipfl\Log\Filter\LogLevelFilter;
+use gipfl\Log\IcingaWeb\IcingaLogger;
 use gipfl\Log\Logger;
 use gipfl\Log\Writer\JsonRpcWriter;
 use gipfl\Log\Writer\SystemdStdoutWriter;
 use gipfl\Log\Writer\WritableStreamWriter;
 use gipfl\Protocol\JsonRpc\Connection;
 use gipfl\Protocol\NetString\StreamWrapper;
+use gipfl\SystemD\systemd;
 use Icinga\Cli\Command as CliCommand;
 use Icinga\Module\Vspheredb\CliUtil;
-use Icinga\Module\Vspheredb\Daemon\IcingaLogger;
-use Icinga\Module\Vspheredb\Daemon\LoggerLogWriter;
 use Icinga\Module\Vspheredb\Db;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use React\EventLoop\Factory as Loop;
@@ -36,6 +36,16 @@ class Command extends CliCommand
 
     /** @var Connection|null */
     protected $rpc;
+
+    public function init()
+    {
+        $this->app->getModuleManager()->loadEnabledModules();
+        $this->clearProxySettings();
+        $this->initializeLogger();
+        if ($this->isRpc()) {
+            $this->enableRpc();
+        }
+    }
 
     protected function loop()
     {
@@ -79,21 +89,28 @@ class Command extends CliCommand
         );
         $this->rpc = new Connection();
         $this->rpc->handle($netString);
-    }
-
-    public function init()
-    {
-        $this->app->getModuleManager()->loadEnabledModules();
-        $this->clearProxySettings();
-        if ($this->isRpc()) {
-            $this->enableRpc();
-        }
-        $this->initializeLogger();
+        $this->logger->addWriter(new JsonRpcWriter($this->rpc));
     }
 
     protected function initializeLogger()
     {
         $this->logger = $logger = new Logger();
+        $this->eventuallyFilterLog($this->logger);
+        IcingaLogger::replace($logger);
+        if ($this->isRpc()) {
+            // Writer will be added later
+            return;
+        }
+        $loop = $this->loop();
+        if (systemd::startedThisProcess()) {
+            $logger->addWriter(new SystemdStdoutWriter($loop));
+        } else {
+            $logger->addWriter(new WritableStreamWriter(new WritableResourceStream(STDERR, $loop)));
+        }
+    }
+
+    protected function eventuallyFilterLog(Logger $logger)
+    {
         /** @noinspection PhpStatementHasEmptyBodyInspection */
         if ($this->isDebugging) {
             // Hint: no need to filter
@@ -103,17 +120,6 @@ class Command extends CliCommand
         } else {
             $logger->addFilter(new LogLevelFilter('notice'));
         }
-        if ($this->isRpc()) {
-            $logger->addWriter(new JsonRpcWriter($this->rpc));
-        } else {
-            $loop = $this->loop();
-            if (isset($_SERVER['NOTIFY_SOCKET'])) {
-                $logger->addWriter(new SystemdStdoutWriter($loop));
-            } else {
-                $logger->addWriter(new WritableStreamWriter(new WritableResourceStream(STDERR, $loop)));
-            }
-        }
-        IcingaLogger::replaceRunningInstance(new LoggerLogWriter($logger));
     }
 
     protected function isRpc()
@@ -187,9 +193,9 @@ class Command extends CliCommand
     {
         if (strlen($message) > $length) {
             return substr($message, 0, $length - 2) . '...';
-        } else {
-            return $message;
         }
+
+        return $message;
     }
 
     protected function requiredParam($name)
