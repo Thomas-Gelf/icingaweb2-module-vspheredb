@@ -4,13 +4,13 @@ namespace Icinga\Module\Vspheredb\Daemon;
 
 use Exception;
 use Evenement\EventEmitterTrait;
+use gipfl\LinuxHealth\Memory;
 use gipfl\Protocol\JsonRpc\Connection;
 use gipfl\Protocol\JsonRpc\Notification;
 use gipfl\Protocol\JsonRpc\PacketHandler;
 use Icinga\Module\Vspheredb\Db;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\DbObject\VCenterServer;
-use Icinga\Module\Vspheredb\LinuxUtils;
 use Icinga\Module\Vspheredb\PerformanceData\CompactEntityMetrics;
 use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceSets;
 use Icinga\Module\Vspheredb\Polling\RequiredPerfData;
@@ -159,7 +159,7 @@ class TaskRunner implements PacketHandler
             $this->pid => (object) [
                 'command' => preg_replace('/^exec /', '', $this->process->getCommand()),
                 'running' => $this->process->isRunning(),
-                'memory'  => LinuxUtils::getMemoryUsageForPid($this->pid)
+                'memory'  => Memory::getUsageForPid($this->pid)
             ]
         ];
 

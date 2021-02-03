@@ -3,6 +3,7 @@
 namespace Icinga\Module\Vspheredb\Daemon;
 
 use Exception;
+use gipfl\LinuxHealth\Memory;
 use gipfl\Log\Logger;
 use gipfl\SystemD\NotifySystemD;
 use gipfl\IcingaCliDaemon\RetryUnless;
@@ -13,7 +14,6 @@ use Icinga\Module\Vspheredb\Db;
 use Icinga\Module\Vspheredb\Db\Migrations;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\DbObject\VCenterServer;
-use Icinga\Module\Vspheredb\LinuxUtils;
 use Icinga\Module\Vspheredb\Rpc\LogProxy;
 use Icinga\Module\Vspheredb\Util;
 use Ramsey\Uuid\Uuid;
@@ -433,7 +433,7 @@ QUERY;
         $info = (object) [$pid => (object) [
             'command' => implode(' ', $argv),
             'running' => true,
-            'memory'  => LinuxUtils::getMemoryUsageForPid($pid)
+            'memory'  => Memory::getUsageForPid($pid)
         ]];
 
         foreach ($this->running as $runner) {

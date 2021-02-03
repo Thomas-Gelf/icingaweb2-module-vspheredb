@@ -5,9 +5,9 @@ namespace Icinga\Module\Vspheredb\Daemon;
 use Exception;
 use Evenement\EventEmitterTrait;
 use gipfl\IcingaCliDaemon\RetryUnless;
+use gipfl\LinuxHealth\Memory;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\DbObject\VCenterServer;
-use Icinga\Module\Vspheredb\LinuxUtils;
 use Icinga\Module\Vspheredb\Rpc\LogProxy;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
@@ -173,7 +173,7 @@ class ServerRunner
             $info[$pid] = (object) [
                 'command' => preg_replace('/^exec /', '', $process->getCommand()),
                 'running' => $process->isRunning(),
-                'memory'  => LinuxUtils::getMemoryUsageForPid($pid)
+                'memory'  => Memory::getUsageForPid($pid)
             ];
         }
 
