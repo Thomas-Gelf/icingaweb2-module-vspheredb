@@ -5,7 +5,6 @@ namespace Icinga\Module\Vspheredb\Polling;
 use Icinga\Module\Vspheredb\Db;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
 use Icinga\Module\Vspheredb\DbObject\VCenterServer;
-use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceSet;
 use Icinga\Module\Vspheredb\PerformanceData\PerformanceSet\PerformanceSets;
 use JsonSerializable;
 

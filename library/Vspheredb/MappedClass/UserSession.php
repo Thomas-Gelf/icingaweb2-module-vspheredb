@@ -47,5 +47,4 @@ class UserSession
 
     /** @var string The user name represented by this session */
     public $userName;
-
 }

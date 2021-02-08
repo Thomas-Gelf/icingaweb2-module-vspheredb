@@ -38,6 +38,7 @@ class EventManager
     /**
      * EventManager constructor.
      * @param Api $api
+     * @throws AuthenticationException
      */
     public function __construct(Api $api, LoggerInterface $logger)
     {
@@ -78,9 +79,9 @@ class EventManager
             //     type => "EventHistoryCollector"
 
             return $result->returnval;
-        } else {
-            throw new AuthenticationException('Unable to create event collector, please check session');
         }
+
+        throw new AuthenticationException('Unable to create event collector, please check session');
     }
 
     /**
@@ -105,9 +106,9 @@ class EventManager
 
         if (property_exists($result, 'returnval')) {
             return $result->returnval;
-        } else {
-            return [];
         }
+
+        return [];
     }
 
     /**
