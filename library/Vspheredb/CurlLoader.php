@@ -128,7 +128,7 @@ class CurlLoader extends EventEmitter
      * Use a proxy
      *
      * @param $url
-     * @param string $type Either HTTP or SOCKS5
+     * @param string|int $type Either HTTP or SOCKS5
      * @return $this
      */
     public function setProxy($url, $type = 'HTTP')
