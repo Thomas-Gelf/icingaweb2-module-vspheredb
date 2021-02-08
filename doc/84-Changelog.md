@@ -14,7 +14,7 @@ in the Frontend. Please **Apply** the pending schema migration. Afterwards pleas
 restart the *Background Daemon*.
 
 ### UI
-* FIX: hide column for experimental feature (#153)
+* FIX: hide column for an experimental feature (#153)
 * FIX: avoid PHP warnings on 7.4 when showing Host details/special cols (#169)
 * FIX: deleting Server connections has been fixed (#155)
 * FIX: Server Form presents masked dummy value, not masked password
@@ -42,6 +42,7 @@ restart the *Background Daemon*.
 * FEATURE: Provide suggestions in case there is no vCenter (#189)
 * FEATURE: allow to define a custom vCenter display name (#121)
 * FEATURE: show VM templates as such to make them distinguishable (#205)
+* FEATURE: add vCenter-related object summaries (#237)
 
 ### CLI
 * FIX: vm check now also looks for object name (#109)

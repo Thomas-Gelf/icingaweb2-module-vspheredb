@@ -5,12 +5,15 @@ namespace Icinga\Module\Vspheredb\Web\Widget;
 use gipfl\IcingaWeb2\Link;
 use gipfl\IcingaWeb2\Url;
 use Icinga\Module\Vspheredb\DbObject\VCenter;
-use ipl\Html\Table;
+use ipl\Html\BaseHtmlElement;
+use ipl\Html\Html;
 
-class VCenterSummaries extends Table
+class VCenterSummaries extends BaseHtmlElement
 {
+    protected $tag = 'div';
+
     protected $defaultAttributes = [
-        // 'class' => 'vcenter-summaries',
+        'class' => 'vcenter-object-summaries',
         'data-base-target' => '_next'
     ];
 
@@ -162,11 +165,12 @@ class VCenterSummaries extends Table
         }
         $url = Url::fromPath($url)->with('vcenter', bin2hex($this->vCenter->getUuid()));
         $state = $this->getWorstState($counters);
-        $title = $this::td([
+        $title = Html::tag('h3', [
             Link::create($title, $url),
             ' (' . $counters->total . ')'
         ]);
-        $cell = $this::td();
+        $cell = Html::tag('div', ['class' => ['summary-countlet', "state-$state"]]);
+        $cell->add($title);
 
         foreach (['red', 'yellow', 'gray', 'green'] as $color) {
             // continue;
@@ -175,10 +179,10 @@ class VCenterSummaries extends Table
                     $counters->$color,
                     $url->with('overall_status', $color),
                     null,
-                    ['class' => ['state', $color]]
+                    ['class' => ['badge', "state-$color"]]
                 ));
             }
         }
-        $this->add($this::row([$title, $cell]));
+        $this->add([$cell]);
     }
 }
