@@ -99,22 +99,24 @@ class VCenter extends BaseDbObject
     }
 
     /**
+     * @param bool $enabled
      * @return VCenterServer
-     * @throws \Icinga\Exception\NotFoundError
+     * @throws NotFoundError
      */
-    public function getFirstServer()
+    public function getFirstServer($enabled = true)
     {
         $db = $this->getConnection()->getDbAdapter();
-        $serverId = $db->fetchOne(
-            $db->select()
-                ->from('vcenter_server')
-                ->where('vcenter_id = ?', $this->get('id'))
-                ->where('enabled = ?', 'y')
-                ->limit(1)
-        );
+        $query = $db->select()
+            ->from('vcenter_server')
+            ->where('vcenter_id = ?', $this->get('id'))
+            ->limit(1);
+        if ($enabled) {
+            $query->where('enabled = ?', 'y');
+        }
+        $serverId = $db->fetchOne($query);
         if ($serverId) {
             return VCenterServer::loadWithAutoIncId($serverId, $this->getConnection());
-        } else {
+        } elseif ($enabled) {
             $serverId = $db->fetchOne(
                 $db->select()
                     ->from('vcenter_server')
@@ -130,6 +132,10 @@ class VCenter extends BaseDbObject
                     'Found no server for vCenterId=' . $this->get('id')
                 );
             }
+        } else {
+            throw new NotFoundError(
+                'Found no server for vCenterId=' . $this->get('id')
+            );
         }
     }
 
