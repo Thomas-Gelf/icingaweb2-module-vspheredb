@@ -29,7 +29,7 @@ class CheckCommand extends CommandBase
      *
      * USAGE
      *
-     * icingacli vspheredb check host [--name <name>]
+     * icingacli vspheredb check host [--name <name>] [--perfdata]
      */
     public function hostAction()
     {
@@ -44,6 +44,10 @@ class CheckCommand extends CommandBase
                 ->checkRuntimePowerState($host)
                 ->checkUptime($quickStats, $host)
             ;
+
+            if (isset($this->params->getParams()['perfdata'])) {
+                $this->addMessage($this->hostPerfData($host, $quickStats));
+            }
         });
     }
 
@@ -71,7 +75,7 @@ class CheckCommand extends CommandBase
      *
      * USAGE
      *
-     * icingacli vspheredb check vm [--name <name>]
+     * icingacli vspheredb check vm [--name <name>] [--perfdata]
      */
     public function vmAction()
     {
@@ -90,6 +94,10 @@ class CheckCommand extends CommandBase
             $this->checkOverallHealth($vm->object())
                 ->checkRuntimePowerState($vm)
                 ->checkUptime($quickStats, $vm);
+
+            if (isset($this->params->getParams()['perfdata'])) {
+                $this->addMessage($this->vmPerfData($vm, $quickStats));
+            }
         });
     }
 
@@ -112,7 +120,7 @@ class CheckCommand extends CommandBase
      *
      * USAGE
      *
-     * icingacli vspheredb check datastore [--name <name>]
+     * icingacli vspheredb check datastore [--name <name>] [--perfdata]
      */
     public function datastoreAction()
     {
@@ -122,6 +130,10 @@ class CheckCommand extends CommandBase
                 'object_name' => $this->params->getRequired('name')
             ], $db);
             $this->checkOverallHealth($datastore->object());
+
+            if (isset($this->params->getParams()['perfdata'])) {
+                $this->addMessage($this->datastorePerfData($datastore));
+            }
         });
     }
 
@@ -278,5 +290,95 @@ class CheckCommand extends CommandBase
         }
 
         return $this->db;
+    }
+
+    protected function hostPerfData($host, $quickStats) {
+        $hostQuickStats = $quickStats->get('properties');
+        $hostProperties = $host->get('properties');
+
+        $hostCpuUsage    = $hostQuickStats['overall_cpu_usage'];
+        $hostCpuCores    = $hostProperties['hardware_cpu_cores'];
+        $hostCpuMHz      = $hostProperties['hardware_cpu_mhz'];
+        $hostCpuCapacity = $hostCpuCores * $hostCpuMHz;
+
+        $hostMemUsage    = $hostQuickStats['overall_memory_usage_mb'];
+        $hostMemCapacity = $hostProperties['hardware_memory_size_mb'];
+
+        $perfData = array(
+            'overall_cpu_usage'         => $hostCpuUsage,
+            'overall_memory_usage_mb'   => $hostMemUsage,
+            'hardware_memory_size_mb'   => $hostMemCapacity,
+
+            'hardware_cpu_capacity_mhz' => $hostCpuCapacity,
+            'overall_memory_usage_pct'  => sprintf('%.2f%%', 100*$hostMemUsage/$hostMemCapacity),
+            'overall_cpu_usage_pct'     => sprintf('%.2f%%', 100*$hostCpuUsage/$hostCpuCapacity),
+        );
+
+        return $this->formatPerfData($perfData);
+    }
+
+    protected function vmPerfData($vm, $quickStats) {
+        $vmQuickStats = $quickStats->get('properties');
+
+        $vmMemoryUsage    = $vmQuickStats['guest_memory_usage_mb'];
+        $vmMemoryCapacity = $vm->get('hardware_memorymb');
+
+        $perfData = array(
+            'ballooned_memory_mb'               => $vmQuickStats['ballooned_memory_mb'],
+            'compressed_memory_kb'              => $vmQuickStats['compressed_memory_kb'],
+            'consumed_overhead_memory_mb'       => $vmQuickStats['consumed_overhead_memory_mb'],
+            'distributed_cpu_entitlement'       => $vmQuickStats['distributed_cpu_entitlement'],
+            'distributed_memory_entitlement_mb' => $vmQuickStats['distributed_memory_entitlement_mb'],
+            'guest_memory_usage_mb'             => $vmMemoryUsage,
+            'host_memory_usage_mb'              => $vmQuickStats['host_memory_usage_mb'],
+            'overall_cpu_demand'                => $vmQuickStats['overall_cpu_demand'],
+            'overall_cpu_usage'                 => $vmQuickStats['overall_cpu_usage'],
+            'private_memory_mb'                 => $vmQuickStats['private_memory_mb'],
+            'shared_memory_mb'                  => $vmQuickStats['shared_memory_mb'],
+            'hardware_memory_mb'                => $vmMemoryCapacity,
+            'ssd_swapped_memory_kb'             => $vmQuickStats['ssd_swapped_memory_kb'],
+            'static_cpu_entitlement'            => $vmQuickStats['static_cpu_entitlement'],
+            'static_memory_entitlement_mb'      => $vmQuickStats['static_memory_entitlement_mb'],
+            'swapped_memory_mb'                 => $vmQuickStats['swapped_memory_mb'],
+
+            'guest_memory_usage_pct'            => sprintf('%.2f%%', 100*$vmMemoryUsage/$vmMemoryCapacity),
+        );
+
+        return $this->formatPerfData($perfData);
+    }
+
+    protected function datastorePerfData($datastore) {
+        $datastoreProperties = $datastore->get('properties');
+
+        $datastoreCapacity    = $datastoreProperties['capacity'];
+        $datastoreFreeSpace   = $datastoreProperties['free_space'];
+        $datastoreUncommitted = $datastoreProperties['uncommitted'];
+
+        $datastoreUsedSpace = $datastoreCapacity-$datastoreFreeSpace;
+        $datastoreCommitted = $datastoreCapacity-$datastoreUncommitted;
+
+        $perfData = array(
+            'capacity'        => $datastoreCapacity,
+            'free_space'      => $datastoreFreeSpace,
+            'uncommitted'     => $datastoreUncommitted,
+
+            'used_space'      => $datastoreUsedSpace,
+            'committed'       => $datastoreCommitted,
+
+            'free_space_pct'  => sprintf('%.2f%%', 100*$datastoreFreeSpace/$datastoreCapacity),
+            'used_space_pct'  => sprintf('%.2f%%', 100*$datastoreUsedSpace/$datastoreCapacity),
+            'uncommitted_pct' => sprintf('%.2f%%', 100*$datastoreUncommitted/$datastoreCapacity),
+            'committed_pct'   => sprintf('%.2f%%', 100*$datastoreCommitted/$datastoreCapacity),
+        );
+
+        return $this->formatPerfData($perfData);
+    }
+
+    protected function formatPerfData($perfData) {
+        $perfDataOutput = array();
+        foreach ($perfData as $key => $value) {
+            $perfDataOutput[] = sprintf('%s=%s', $key, $value);
+        }
+        return '|'.implode(' ', $perfDataOutput);
     }
 }
