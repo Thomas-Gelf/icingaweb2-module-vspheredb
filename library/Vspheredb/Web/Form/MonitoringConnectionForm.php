@@ -43,7 +43,6 @@ class MonitoringConnectionForm extends Form
             'label'    => $this->translate('vCenter'),
             'options'  => $this->optionalEnum($this->enumVCenters()),
             'ignore'   => true,
-            'required' => true,
         ]);
 
         $this->addElement('select', 'source_type', [

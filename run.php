@@ -2,6 +2,7 @@
 
 /** @var $this \Icinga\Application\Modules\Module */
 $this->provideHook('director/ImportSource');
+$this->provideHook('monitoring/DetailviewExtension');
 
 $modules = $this->app->getModuleManager();
 foreach ($this->getDependencies() as $module => $required) {

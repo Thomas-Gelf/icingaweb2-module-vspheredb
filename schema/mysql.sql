@@ -726,12 +726,7 @@ CREATE TABLE monitoring_connection (
   monitoring_host_property VARCHAR(128) DEFAULT NULL,
   vm_property VARCHAR(128) DEFAULT NULL,
   monitoring_vm_host_property VARCHAR(128) DEFAULT NULL,
-  PRIMARY KEY (id),
-  CONSTRAINT monitoring_vcenter
-    FOREIGN KEY monitoring_vcenter_uuid (vcenter_uuid)
-    REFERENCES vcenter (instance_uuid)
-    ON DELETE RESTRICT
-    ON UPDATE CASCADE
+  PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_bin;
 
 CREATE TABLE host_monitoring_hoststate (
