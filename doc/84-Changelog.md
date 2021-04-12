@@ -66,7 +66,7 @@ restart the *Background Daemon*.
 ### Integrations
 * FEATURE: ship more VM properties with our Director Import Source
 * FEATURE: ship Custom Values for the Icinga Director (#88)
-* FEATURE: Import Source now ships Compute Resources (#185)
+* FEATURE: Import Source now ships Compute Resources (#185) and Datastores (#246)
 
 ### DB Schema
 * FIX: dropped a unique constraint on BIOS UUID because of VMware bugs (#83, #99)

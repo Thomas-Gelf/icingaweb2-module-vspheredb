@@ -55,6 +55,14 @@ class ImportSource extends ImportSourceHook
         'total_memory_size_mb'     => 'cr.total_memory_size_mb',
     ];
 
+    protected $datastoreColumns = [
+        'object_name'          => 'o.object_name',
+        'vcenter_name'         => 'vc.name',
+        'maintenance_mode'     => 'ds.maintenance_mode',
+        'capacity'             => 'ds.capacity',
+        'multiple_host_access' => 'ds.multiple_host_access',
+    ];
+
     public function getName()
     {
         return 'VMware vSphereDB';
@@ -68,6 +76,7 @@ class ImportSource extends ImportSourceHook
                 'host_system'      => $form->translate('Host Systems'),
                 'virtual_machine'  => $form->translate('Virtual Machine'),
                 'compute_resource' => $form->translate('Compute Resource'),
+                'datastore'        => $form->translate('Datastore'),
             ]),
             'required' => true
         ]);
@@ -86,7 +95,9 @@ class ImportSource extends ImportSourceHook
                 $result = $db->fetchAll($this->prepareVmQuery($db));
                 break;
             case 'compute_resource':
-                $result = $db->fetchAll($this->prepareComputeResourceQuery($db));
+                break;
+            case 'datastore':
+                $result = $db->fetchAll($this->prepareDatastoreQuery($db));
                 break;
             default:
                 return [];
@@ -134,6 +145,15 @@ class ImportSource extends ImportSourceHook
         )->order('o.object_name')->order('o.uuid');
     }
 
+    protected function prepareDatastoreQuery(ZfDb $db)
+    {
+        return $db->select()->from(['o' => 'object'], $this->datastoreColumns)->join(
+            ['ds' => 'datastore'],
+            'o.uuid = ds.uuid',
+            []
+        )->order('o.object_name')->order('o.uuid');
+    }
+
     public function listColumns()
     {
         switch ($this->getSetting('object_type')) {
@@ -143,6 +163,8 @@ class ImportSource extends ImportSourceHook
                 return \array_keys($this->vmColumns);
             case 'compute_resource':
                 return \array_keys($this->computeResourceColumns);
+            case 'datastore':
+                return \array_keys($this->datastoreColumns);
             default:
                 return [];
         }
