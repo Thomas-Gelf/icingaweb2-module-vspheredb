@@ -20,7 +20,10 @@ class VCenterPerformanceCollectionForm extends ObjectForm
 
     public function assemble()
     {
-        $this->addElement((new VCenterSelection($this->store->getDb()))->setLabel($this->translate('VCenter')));
+        $selectVcenter = (new VCenterSelection($this->store->getDb()))
+            ->setLabel($this->translate('VCenter'));
+        $selectVcenter->getOption(null)->setLabel($this->translate('All of them'));
+        $this->addElement($selectVcenter);
         $this->addElement('boolean', 'enabled', [
             'label' => $this->translate('Enabled'),
             'value' => 'y',
