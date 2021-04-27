@@ -12,7 +12,7 @@ class IcingaCliRpc extends IcingaCli
     /** @var IcingaCliRunner */
     protected $runner;
 
-    /** @var Connection|null */
+    /** @var Connection */
     protected $rpc;
 
     protected $arguments = [];
